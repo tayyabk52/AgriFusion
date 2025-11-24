@@ -110,30 +110,30 @@ const features = [
     {
         Icon: ScanLine,
         name: "Smart Soil Analysis",
-        description: "AI-powered soil analysis using image recognition to determine soil composition.",
+        description: "AI-powered soil analysis using image recognition to determine soil composition and health metrics.",
         className: "col-span-3 lg:col-span-1",
-        background: <ScanningViz />,
+        background: <div className="absolute inset-0"><img src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&q=80" alt="Soil Analysis" className="w-full h-full object-cover" /></div>,
     },
     {
         Icon: Sprout,
         name: "Intelligent Crop Mix",
-        description: "Generate optimized intercropping patterns with AI predictions for maximum yield.",
+        description: "Generate optimized intercropping patterns with AI predictions for maximum yield and sustainable farming.",
         className: "col-span-3 lg:col-span-2",
-        background: <CropListViz />,
+        background: <div className="absolute inset-0"><img src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=800&q=80" alt="Crop Fields" className="w-full h-full object-cover" /></div>,
     },
     {
         Icon: Recycle,
-        name: "Waste-to-Value",
-        description: "Connect with potential buyers of waste products.",
+        name: "Waste-to-Value Marketplace",
+        description: "Transform agricultural waste into revenue by connecting with buyers seeking sustainable biomass materials.",
         className: "col-span-3 lg:col-span-2",
-        background: <WasteViz />,
+        background: <div className="absolute inset-0"><img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80" alt="Agricultural Waste" className="w-full h-full object-cover" /></div>,
     },
     {
         Icon: Users,
         name: "Expert Network",
-        description: "Connect with verified agricultural experts instantly.",
+        description: "Connect with verified agricultural experts for instant guidance and professional consultation.",
         className: "col-span-3 lg:col-span-1",
-        background: <NetworkViz />,
+        background: <div className="absolute inset-0"><img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600&q=80" alt="Expert Consultation" className="w-full h-full object-cover" /></div>,
     },
 ];
 
@@ -167,7 +167,7 @@ export const ModulesSection = () => {
 
                 <BentoGrid>
                     {features.map((feature, idx) => (
-                        <BentoCard key={idx} {...feature} />
+                        <BentoCard key={idx} {...feature} index={idx} />
                     ))}
                 </BentoGrid>
             </div>
