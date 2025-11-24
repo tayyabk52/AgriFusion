@@ -108,7 +108,7 @@ export default function ContactPage() {
                             Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Touch</span>
                         </h1>
                         <p className="text-lg text-slate-600 max-w-xl mx-auto leading-relaxed">
-                            Have a question or want to learn more about AgriFusion? We'd love to hear from you.
+                            Have a question or want to learn more about AgriFusion? We&apos;d love to hear from you.
                         </p>
                     </motion.div>
 
@@ -134,7 +134,7 @@ export default function ContactPage() {
                                     <CheckCircle2 className="w-10 h-10 text-emerald-600" />
                                 </motion.div>
                                 <h3 className="text-2xl font-bold text-slate-900 mb-2">Message Sent!</h3>
-                                <p className="text-slate-600">We'll get back to you soon.</p>
+                                <p className="text-slate-600">We&apos;ll get back to you soon.</p>
                             </motion.div>
                         )}
 

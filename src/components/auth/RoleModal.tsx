@@ -204,16 +204,44 @@ export const RoleModal = ({ role, isOpen, onClose }: RoleModalProps) => {
                                     <span className="block text-xs font-medium text-slate-500 uppercase tracking-wider">Next Step</span>
                                     <span className="block text-sm font-semibold text-slate-900">Registration Form</span>
                                 </div>
-                                <Button
-                                    variant="emerald"
-                                    size="lg"
-                                    rounded="xl"
-                                    className="flex-1 sm:flex-none"
-                                    icon={<ArrowRight size={18} />}
-                                    iconPosition="right"
-                                >
-                                    Continue
-                                </Button>
+                                {role.id === 'farmer' ? (
+                                    <a href="/signup/farmer" className="flex-1 sm:flex-none">
+                                        <Button
+                                            variant="emerald"
+                                            size="lg"
+                                            rounded="xl"
+                                            className="w-full"
+                                            icon={<ArrowRight size={18} />}
+                                            iconPosition="right"
+                                        >
+                                            Continue
+                                        </Button>
+                                    </a>
+                                ) : role.id === 'consultant' ? (
+                                    <a href="/signup/consultant" className="flex-1 sm:flex-none">
+                                        <Button
+                                            variant="premium"
+                                            size="lg"
+                                            rounded="xl"
+                                            className="w-full"
+                                            icon={<ArrowRight size={18} />}
+                                            iconPosition="right"
+                                        >
+                                            Continue
+                                        </Button>
+                                    </a>
+                                ) : (
+                                    <Button
+                                        variant="emerald"
+                                        size="lg"
+                                        rounded="xl"
+                                        className="flex-1 sm:flex-none"
+                                        icon={<ArrowRight size={18} />}
+                                        iconPosition="right"
+                                    >
+                                        Continue
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </motion.div>
