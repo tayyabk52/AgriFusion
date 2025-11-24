@@ -58,19 +58,17 @@ export default function ContactPage() {
             y: 0,
             transition: {
                 duration: 0.6,
-                ease: [0.22, 1, 0.36, 1]
+                ease: [0.22, 1, 0.36, 1] as any
             }
         }
     };
 
-    const floatingVariants = {
-        animate: {
-            y: [0, -10, 0],
-            transition: {
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut"
-            }
+    const floatingAnimation = {
+        y: [0, -10, 0],
+        transition: {
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut" as const
         }
     };
 
@@ -82,14 +80,14 @@ export default function ContactPage() {
             <section className="relative min-h-screen flex items-center justify-center pt-32 pb-32 px-6 overflow-hidden bg-white">
                 {/* Floating Decorative Elements */}
                 <motion.div
-                    variants={floatingVariants}
-                    animate="animate"
+                    animate={floatingAnimation}
                     className="absolute top-32 right-[10%] w-64 h-64 bg-gradient-to-br from-emerald-100/30 to-teal-100/30 rounded-full blur-3xl pointer-events-none"
                 />
                 <motion.div
-                    variants={floatingVariants}
-                    animate="animate"
-                    transition={{ delay: 1 }}
+                    animate={{
+                        ...floatingAnimation,
+                        transition: { ...floatingAnimation.transition, delay: 1 }
+                    }}
                     className="absolute bottom-32 left-[10%] w-80 h-80 bg-gradient-to-tr from-slate-100/50 to-slate-200/50 rounded-full blur-3xl pointer-events-none"
                 />
 

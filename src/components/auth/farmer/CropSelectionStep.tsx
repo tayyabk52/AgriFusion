@@ -38,7 +38,7 @@ export const CropSelectionStep = ({ formData, onChange, errors }: CropSelectionS
         visible: {
             opacity: 1,
             scale: 1,
-            transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] }
+            transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] as any }
         }
     };
 

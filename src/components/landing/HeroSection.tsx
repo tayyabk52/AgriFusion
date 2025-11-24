@@ -28,7 +28,7 @@ const FloatingCard = ({
     <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] as const }}
+        transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] as any }}
         className={cn(
             "absolute p-4 bg-white/80 backdrop-blur-xl border border-white/60 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center gap-4 z-20",
             className
@@ -112,7 +112,7 @@ export const HeroSection = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] as const }}
+                        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] as any }}
                     >
                         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.1] mb-6">
                             Cultivating the <br />
@@ -129,7 +129,7 @@ export const HeroSection = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] as const }}
+                        transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] as any }}
                         className="flex flex-wrap items-center gap-4"
                     >
                         <Button

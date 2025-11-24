@@ -28,7 +28,7 @@ const navbarVariants = {
         opacity: 1,
         transition: {
             duration: 0.8,
-            ease: [0.22, 1, 0.36, 1] as const,
+            ease: [0.22, 1, 0.36, 1] as any,
             staggerChildren: 0.1,
         },
     },
@@ -47,7 +47,7 @@ const mobileMenuVariants = {
         y: 0,
         transition: {
             duration: 0.3,
-            ease: [0.22, 1, 0.36, 1] as const,
+            ease: [0.22, 1, 0.36, 1] as any,
             staggerChildren: 0.05,
             delayChildren: 0.1,
         },

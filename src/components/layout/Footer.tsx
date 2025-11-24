@@ -9,12 +9,6 @@ export const Footer = () => {
     const currentYear = new Date().getFullYear();
 
     const footerLinks = {
-        product: [
-            { name: 'Soil Analysis', href: '#' },
-            { name: 'Crop Planning', href: '#' },
-            { name: 'Waste Management', href: '#' },
-            { name: 'Expert Network', href: '#' },
-        ],
         company: [
             { name: 'About Us', href: '#' },
             { name: 'Contact', href: '#' },
@@ -32,7 +26,7 @@ export const Footer = () => {
             </div>
 
             <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
                     {/* Brand Section */}
                     <div className="md:col-span-2">
                         <Link href="/" className="inline-flex items-center gap-2 mb-4 group">
@@ -60,25 +54,6 @@ export const Footer = () => {
                                 <span>+1 (555) 123-4567</span>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Product Links */}
-                    <div>
-                        <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">
-                            Product
-                        </h3>
-                        <ul className="space-y-2">
-                            {footerLinks.product.map((link) => (
-                                <li key={link.name}>
-                                    <Link
-                                        href={link.href}
-                                        className="text-slate-400 hover:text-emerald-400 transition-colors text-sm inline-block hover:translate-x-1 duration-200"
-                                    >
-                                        {link.name}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
                     </div>
 
                     {/* Company Links */}

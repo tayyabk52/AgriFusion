@@ -45,12 +45,12 @@ const BentoCard = ({
             transition={{
                 duration: 0.7,
                 delay: index * 0.15,
-                ease: [0.22, 1, 0.36, 1],
+                ease: [0.22, 1, 0.36, 1] as any,
             }}
             whileHover={{
                 y: -12,
                 scale: 1.02,
-                transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] }
+                transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as any }
             }}
             className={cn(
                 "group relative col-span-3 flex flex-col overflow-hidden rounded-[2rem]",
@@ -67,7 +67,7 @@ const BentoCard = ({
                 <motion.div
                     className="w-full h-full"
                     whileHover={{ scale: 1.1 }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] as any }}
                 >
                     {background}
                 </motion.div>
@@ -90,7 +90,7 @@ const BentoCard = ({
                         rotate: 15,
                         scale: 1.1
                     }}
-                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] as any }}
                 >
                     <Icon size={100} className="text-white" strokeWidth={1} />
                 </motion.div>
@@ -132,7 +132,7 @@ const BentoCard = ({
                     <motion.h3
                         className="text-2xl font-bold text-slate-900 leading-tight tracking-tight"
                         whileHover={{ x: 4 }}
-                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] as any }}
                     >
                         {name}
                     </motion.h3>
@@ -158,7 +158,7 @@ const BentoCard = ({
                     className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent"
                     initial={{ x: "-100%" }}
                     whileHover={{ x: "100%" }}
-                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] as any }}
                 />
             </motion.div>
 

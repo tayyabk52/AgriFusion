@@ -11,13 +11,14 @@ import {
 import { Country, State, City, ICountry, IState, ICity } from 'country-state-city';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
+import Loader from '@/components/ui/Loader';
 
 /**
  * ------------------------------------------------------------------
  * ASSETS & CONFIG
  * ------------------------------------------------------------------
  */
-const BACKGROUND_IMAGE = "https://images.unsplash.com/photo-1625246333195-58197bdc0a7e?q=80&w=1000&auto=format&fit=crop";
+const BACKGROUND_IMAGE = "https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=1000&auto=format&fit=crop";
 
 const STEPS = [
   { id: 1, title: "Account", subtitle: "Personal Details", icon: User },
@@ -294,6 +295,7 @@ const ReviewField = ({ label, value }: { label: string; value: string }) => (
 export default function FarmerRegistration() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -378,8 +380,16 @@ export default function FarmerRegistration() {
   const goToStep = (step: number) => setCurrentStep(step);
 
   const handleSubmit = async () => {
+    // Show loader
+    setIsLoading(true);
+
+    // Simulate API call with delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     // In real app: Call API to create auth user + profile + farmer record
     console.log("Submitting Final Data:", formData);
+
+    setIsLoading(false);
     nextStep(); // Move to Success (Step 5)
   };
 
@@ -639,8 +649,10 @@ export default function FarmerRegistration() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
-      <HeaderNavbar onBack={handleBackToSignup} />
+    <>
+      {isLoading && <Loader />}
+      <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
+        <HeaderNavbar onBack={handleBackToSignup} />
 
       <main className="pt-16 h-screen flex overflow-hidden">
         {/* Fixed Sidebar for Desktop */}
@@ -711,5 +723,6 @@ export default function FarmerRegistration() {
         </div>
       </main>
     </div>
+    </>
   );
 }

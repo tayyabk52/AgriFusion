@@ -11,6 +11,7 @@ import {
 import { Country, State, City, ICountry, IState, ICity } from 'country-state-city';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
+import Loader from '@/components/ui/Loader';
 
 /**
  * ------------------------------------------------------------------
@@ -309,6 +310,7 @@ const ReviewField = ({ label, value }: { label: string; value: string }) => (
 export default function ConsultantRegistration() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -382,8 +384,16 @@ export default function ConsultantRegistration() {
   const goToStep = (step: number) => setCurrentStep(step);
 
   const handleSubmit = async () => {
+    // Show loader
+    setIsLoading(true);
+
+    // Simulate API call with delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     // In real app: Call API to create auth user + profile + consultant record
     console.log("Submitting Final Data:", formData);
+
+    setIsLoading(false);
     nextStep(); // Move to Success (Step 5)
   };
 
@@ -844,8 +854,10 @@ export default function ConsultantRegistration() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
-      <HeaderNavbar onBack={handleBackToSignup} />
+    <>
+      {isLoading && <Loader />}
+      <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
+        <HeaderNavbar onBack={handleBackToSignup} />
 
       <main className="pt-16 h-screen flex overflow-hidden">
         {/* Fixed Sidebar for Desktop */}
@@ -916,5 +928,6 @@ export default function ConsultantRegistration() {
         </div>
       </main>
     </div>
+    </>
   );
 }

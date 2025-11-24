@@ -29,7 +29,7 @@ export const StepIndicator = ({ steps, currentStep, className }: StepIndicatorPr
                         animate={{
                             width: `${((currentStep) / (steps.length - 1)) * 100}%`
                         }}
-                        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] as any }}
                     />
                 </div>
 
@@ -95,7 +95,7 @@ export const StepIndicator = ({ steps, currentStep, className }: StepIndicatorPr
                         animate={{
                             width: `${((currentStep + 1) / steps.length) * 100}%`
                         }}
-                        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] as any }}
                     />
                 </div>
                 <p className="text-sm font-medium text-slate-700 mt-3">
