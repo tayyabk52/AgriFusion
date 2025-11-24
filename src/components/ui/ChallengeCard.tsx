@@ -26,13 +26,13 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
 
     return (
         <div
-            className={`relative transition-all duration-500 ${isExpanded ? 'mb-48 md:mb-0 z-30' : 'z-10'}`}
+            className={`relative transition-all duration-500 ${isExpanded ? 'mb-48 md:mb-0 z-50' : 'z-10'}`}
             onClick={() => setIsExpanded(!isExpanded)}
             onMouseEnter={() => setIsExpanded(true)}
             onMouseLeave={() => setIsExpanded(false)}
         >
             {/* Main Card - Always Visible */}
-            <div className={`relative w-full h-32 rounded-3xl backdrop-blur-sm border border-slate-200/50 shadow-lg transition-all duration-500 ease-out cursor-pointer z-20 ${isExpanded ? 'bg-gradient-to-br from-emerald-50 to-white' : 'bg-white/90'
+            <div className={`relative w-full h-32 rounded-3xl backdrop-blur-sm border border-slate-200/50 shadow-lg transition-all duration-500 ease-out cursor-pointer z-30 ${isExpanded ? 'bg-gradient-to-br from-emerald-50 to-white' : 'bg-white/90'
                 }`}>
                 <div className={`absolute inset-0 bg-gradient-to-br from-transparent to-slate-50/50 rounded-3xl transition-opacity duration-500 ${isExpanded ? 'opacity-100' : 'opacity-0'
                     }`} />
@@ -56,7 +56,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({
             </div>
 
             {/* Expandable Details Card - Shows on Hover/Click */}
-            <div className={`absolute top-0 left-0 w-full rounded-3xl bg-white border border-slate-200/50 shadow-xl transition-all duration-500 ease-out overflow-hidden z-10 ${isExpanded ? 'h-[320px] shadow-2xl' : 'h-32'
+            <div className={`absolute top-0 left-0 w-full rounded-3xl bg-white border border-slate-200/50 shadow-xl transition-all duration-500 ease-out overflow-hidden z-20 ${isExpanded ? 'h-[320px] shadow-2xl' : 'h-32'
                 }`}>
                 <div className={`transition-opacity duration-300 p-6 pt-40 ${isExpanded ? 'opacity-100 delay-300' : 'opacity-0'
                     }`}>

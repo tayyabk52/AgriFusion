@@ -50,7 +50,7 @@ export default function AboutPage() {
                     </div>
 
                     {/* Connected Feature Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-0 shadow-xl shadow-slate-200/50 rounded-2xl bg-white ring-1 ring-slate-200/50">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-0 shadow-xl shadow-slate-200/50 rounded-2xl bg-white ring-1 ring-slate-200/50 relative z-50">
 
                         {/* Card 1 */}
                         <div className="group relative h-full p-8 bg-white border border-slate-200/50 rounded-none first:rounded-l-2xl last:rounded-r-2xl hover:bg-slate-50 transition-all duration-500 ease-out overflow-hidden hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-1 border-r-0 last:border-r">

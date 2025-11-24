@@ -88,7 +88,7 @@ export const PremiumMissionCard: React.FC<PremiumMissionCardProps> = ({
                         </div>
 
                         {/* Content Overlay - Top section */}
-                        <div className="absolute top-0 left-0 right-0 p-6 z-50">
+                        <div className="absolute top-0 left-0 right-0 p-6 z-10">
                             <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/30">
@@ -103,7 +103,7 @@ export const PremiumMissionCard: React.FC<PremiumMissionCardProps> = ({
                         </div>
 
                         {/* Content Overlay - Bottom section */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm p-6 z-50 rounded-b-3xl">
+                        <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm p-6 z-10 rounded-b-3xl">
                             <p className="text-sm text-slate-600 mb-4 leading-relaxed">
                                 {description}
                             </p>
