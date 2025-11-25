@@ -78,7 +78,7 @@ export default function SignupPage() {
 
                 <div className="relative z-10 max-w-7xl mx-auto">
                     {/* Premium Header */}
-                    <div className="text-center max-w-4xl mx-auto mb-16">
+                    <div className="text-center max-w-4xl mx-auto mb-4">
                         <motion.div
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
