@@ -16,6 +16,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const navItems = [
+    { name: 'Home', href: '/' },
     { name: 'About Us', href: '/about' },
     { name: 'Contact Us', href: '/contact' },
 ];
@@ -100,36 +101,40 @@ export const Navbar = () => {
                             : 'w-[95%] md:w-[93%] max-w-7xl py-3.5 px-5 pl-7 rounded-[2rem] shadow-xl shadow-slate-200/50'
                     )}
                 >
-                    {/* 1. LEFT: BRAND IDENTITY */}
-                    <motion.div variants={itemVariants} className="z-10">
-                        <Link href="/" className="flex items-center gap-3 group cursor-pointer select-none">
-                            <motion.div
-                                whileHover={{ scale: 1.05 }}
-                                transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-                                className="relative w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden"
-                            >
-                                <Image
-                                    src="/logo.png"
-                                    alt="AgriFusion Logo"
-                                    width={40}
-                                    height={40}
-                                    className="w-full h-full object-contain"
-                                    priority
-                                />
-                            </motion.div>
-                            <div className="flex flex-col leading-none">
-                                <span className="text-lg font-extrabold tracking-tight text-slate-900">
-                                    Agri
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
-                                        Fusion
+                    {/* 1. LEFT: BRAND IDENTITY & NAVIGATION */}
+                    <div className="flex items-center gap-6 z-10">
+                        <motion.div variants={itemVariants}>
+                            <Link href="/" className="flex items-center gap-3 group cursor-pointer select-none">
+                                <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                                    className="relative w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden"
+                                >
+                                    <Image
+                                        src="/logo.png"
+                                        alt="AgriFusion Logo"
+                                        width={40}
+                                        height={40}
+                                        className="w-full h-full object-contain"
+                                        priority
+                                    />
+                                </motion.div>
+                                <div className="flex flex-col leading-none">
+                                    <span className="text-lg font-extrabold tracking-tight text-slate-900">
+                                        Agri
+                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
+                                            Fusion
+                                        </span>
                                     </span>
-                                </span>
-                            </div>
-                        </Link>
-                    </motion.div>
+                                </div>
+                            </Link>
+                        </motion.div>
 
-                    {/* 2. CENTER: NAVIGATION LINKS */}
-                    <nav className="hidden md:flex items-center gap-1.5 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        {/* Separator */}
+                        <motion.div variants={itemVariants} className="hidden md:block w-px h-6 bg-slate-200" />
+
+                        {/* NAVIGATION LINKS */}
+                        <nav className="hidden md:flex items-center gap-1">
                         {navItems.map((item) => (
                             <motion.div key={item.name} variants={itemVariants}>
                                 <Link
@@ -137,7 +142,7 @@ export const Navbar = () => {
                                     onMouseEnter={() => setHoveredTab(item.name)}
                                     onMouseLeave={() => setHoveredTab(null)}
                                     className={cn(
-                                        'relative px-5 py-2.5 text-sm font-semibold rounded-full transition-all duration-300',
+                                        'relative px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-300',
                                         pathname === item.href
                                             ? 'text-emerald-700'
                                             : 'text-slate-600 hover:text-slate-900'
@@ -147,7 +152,7 @@ export const Navbar = () => {
                                     {pathname === item.href && (
                                         <motion.div
                                             layoutId="active-pill"
-                                            className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-full -z-10 border border-emerald-200/60 shadow-md shadow-emerald-200/30"
+                                            className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg -z-10 border border-emerald-200/50"
                                             transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                                         />
                                     )}
@@ -156,7 +161,7 @@ export const Navbar = () => {
                                     {hoveredTab === item.name && pathname !== item.href && (
                                         <motion.div
                                             layoutId="nav-pill"
-                                            className="absolute inset-0 bg-slate-100/80 shadow-md shadow-slate-200/40 rounded-full -z-10 border border-slate-200/80"
+                                            className="absolute inset-0 bg-slate-50 rounded-lg -z-10"
                                             transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                                         />
                                     )}
@@ -164,27 +169,26 @@ export const Navbar = () => {
                                 </Link>
                             </motion.div>
                         ))}
+                        </nav>
+                    </div>
 
-                        <motion.div variants={itemVariants} className="w-px h-5 bg-slate-300/50 mx-3" />
-
-                        <motion.div variants={itemVariants}>
+                    {/* 2. RIGHT: AUTH BUTTONS & Mobile Toggle */}
+                    <div className="flex items-center gap-2.5 z-10">
+                        <motion.div variants={itemVariants} className="hidden md:flex items-center gap-2.5">
                             <Link href="/login">
-                                <Button variant="glass" rounded="full" size="sm" className="px-5 font-semibold">
+                                <Button variant="glass" rounded="full" size="sm" className="pl-6 pr-6 font-semibold">
                                     Sign In
                                 </Button>
                             </Link>
-                        </motion.div>
-                    </nav>
 
-                    {/* 3. RIGHT: PRIMARY ACTION & Mobile Toggle */}
-                    <div className="flex items-center gap-2.5 z-10">
-                        <motion.div variants={itemVariants} className="hidden md:flex">
+                            <div className="w-px h-5 bg-slate-300/50" />
+
                             <Link href="/signup">
                                 <Button
                                     variant="premium"
                                     rounded="full"
                                     size="sm"
-                                    className="pl-6 pr-4 shadow-lg shadow-slate-900/10 hover:shadow-xl hover:shadow-slate-900/20"
+                                    className="pl-6 pr-4 shadow-lg shadow-slate-900/10 hover:shadow-xl hover:shadow-slate-900/20 font-semibold"
                                     icon={
                                         <div className="bg-gradient-to-br from-white/30 to-white/10 rounded-full p-0.5 backdrop-blur-sm shadow-sm group-hover:from-white/40 group-hover:to-white/20 transition-all">
                                             <ArrowRight size={14} strokeWidth={2.5} />
