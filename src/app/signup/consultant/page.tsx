@@ -12,6 +12,10 @@ import { Country, State, City, ICountry, IState, ICity } from 'country-state-cit
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import Loader from '@/components/ui/Loader';
+import { supabase } from '@/lib/supabaseClient';
+import { uploadConsultantDocuments, validateFile } from '@/lib/storageUtils';
+import { validateEmail, validatePhone, validatePassword } from '@/lib/validationUtils';
+import * as flags from 'country-flag-icons/react/3x2';
 
 /**
  * ------------------------------------------------------------------
@@ -298,6 +302,108 @@ const SelectField = ({ label, icon: Icon, placeholder, value, onChange, required
 
 /**
  * ------------------------------------------------------------------
+ * COMPONENT: Phone Input Field
+ * ------------------------------------------------------------------
+ */
+interface PhoneInputProps {
+  label: string;
+  icon: React.ElementType;
+  placeholder: string;
+  value: string;
+  countryCode: string;
+  onCountryChange: (code: string) => void;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+  half?: boolean;
+  name: string;
+  isHighlighted?: boolean;
+}
+
+const PhoneInput = ({ label, icon: Icon, placeholder, value, countryCode, onCountryChange, onChange, required, half, name, isHighlighted }: PhoneInputProps) => {
+  const isFilled = value && value.length > 0;
+  const countries = Country.getAllCountries();
+  const selectedCountry = countries.find(c => c.phonecode === countryCode.replace('+', ''));
+
+  // Dynamically get the flag component
+  const FlagComponent = selectedCountry ? (flags as any)[selectedCountry.isoCode] : null;
+
+  return (
+    <div className={`relative group ${half ? 'col-span-1' : 'col-span-2'}`}>
+      <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1 transition-colors ${isHighlighted ? 'text-red-500 animate-pulse' : 'text-slate-500 group-focus-within:text-blue-600'
+        }`}>
+        {label} {required && <span className="text-red-400">*</span>}
+      </label>
+      <div className="relative flex gap-2">
+        {/* Country Code Dropdown */}
+        <div className="relative w-1/3 min-w-[140px]">
+          <div className="absolute inset-0 flex items-center pl-3 z-10 pointer-events-none text-slate-900 text-sm font-medium">
+            {FlagComponent && (
+              <FlagComponent
+                className="mr-2 rounded-sm"
+                style={{ width: '24px', height: 'auto' }}
+              />
+            )}
+            <span>{countryCode}</span>
+          </div>
+          <select
+            value={countryCode}
+            onChange={(e) => onCountryChange(e.target.value)}
+            className={`
+              w-full bg-slate-50/50 border text-transparent text-sm rounded-xl
+              focus:ring-0 focus:border-blue-500 block pl-10 pr-8 py-2.5
+              transition-all outline-none font-medium appearance-none relative z-20
+              ${isHighlighted ? 'border-red-400 bg-red-50/30' : 'border-slate-200'}
+            `}
+            style={{ color: 'transparent' }}
+          >
+            {countries.map((country) => (
+              <option key={country.isoCode} value={`+${country.phonecode}`} className="text-slate-900">
+                {country.flag} +{country.phonecode} ({country.isoCode})
+              </option>
+            ))}
+          </select>
+          <div className="absolute top-3 right-2 pointer-events-none text-slate-400 z-20">
+            <ChevronRight size={14} className="rotate-90" />
+          </div>
+        </div>
+
+        {/* Phone Number Input */}
+        <div className="relative flex-1">
+          <div className={`absolute top-3 left-3.5 transition-colors ${isHighlighted ? 'text-red-500' : 'text-slate-400 group-focus-within:text-blue-500'
+            }`}>
+            <Icon size={16} />
+          </div>
+          <input
+            type="tel"
+            name={name}
+            maxLength={10}
+            className={`
+              w-full bg-slate-50/50 border text-slate-900 text-sm rounded-xl
+              focus:ring-0 block pl-10 pr-4 py-2.5
+              transition-all outline-none placeholder:text-slate-400 font-medium
+              ${isHighlighted
+                ? 'border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
+                : `border-slate-200 focus:border-blue-500 group-focus-within:bg-white group-focus-within:shadow-lg group-focus-within:shadow-blue-500/5 ${isFilled ? 'border-slate-300 bg-white' : ''}`
+              }
+            `}
+            placeholder={placeholder}
+            value={value}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, '');
+              onChange({ ...e, target: { ...e.target, name, value: val } });
+            }}
+            required={required}
+          />
+          {/* Active Border Bottom Accent */}
+          <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-blue-500 scale-x-0 group-focus-within:scale-x-100 transition-transform duration-300 origin-center" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * ------------------------------------------------------------------
  * COMPONENT: Review Field (Read-Only)
  * ------------------------------------------------------------------
  */
@@ -322,6 +428,7 @@ export default function ConsultantRegistration() {
     full_name: '',
     email: '',
     phone: '',
+    phoneCountryCode: '+92', // Default to Pakistan
     password: '',
     qualification: '',
     experience_years: '',
@@ -329,6 +436,20 @@ export default function ConsultantRegistration() {
     specialization_areas: [] as string[],
     service_areas: [] as string[],
   });
+
+  const [documents, setDocuments] = useState<{
+    educational: File | null;
+    professional: File | null;
+    experience: File | null;
+    government: File | null;
+  }>({
+    educational: null,
+    professional: null,
+    experience: null,
+    government: null,
+  });
+
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const [specializationInput, setSpecializationInput] = useState('');
   const [serviceAreaInput, setServiceAreaInput] = useState('');
@@ -385,38 +506,102 @@ export default function ConsultantRegistration() {
     });
   };
 
+  const handleDocumentChange = (docType: 'educational' | 'professional' | 'experience' | 'government', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const validation = validateFile(file);
+      if (!validation.valid) {
+        setValidationErrors([validation.error || 'Invalid file']);
+        return;
+      }
+      setDocuments(prev => ({ ...prev, [docType]: file }));
+      // Clear validation errors when a valid file is selected
+      setValidationErrors([]);
+    }
+  };
+
+  const removeDocument = (docType: 'educational' | 'professional' | 'experience' | 'government') => {
+    setDocuments(prev => ({ ...prev, [docType]: null }));
+  };
+
   const [highlightedFields, setHighlightedFields] = useState<Set<string>>(new Set());
 
   const validateCurrentStep = () => {
+    const errors: string[] = [];
     const fieldsToHighlight = new Set<string>();
 
     if (currentStep === 1) {
-      // Validate Account step
-      if (!formData.full_name.trim()) fieldsToHighlight.add('full_name');
-      if (!formData.email.trim()) fieldsToHighlight.add('email');
-      if (!formData.phone.trim()) fieldsToHighlight.add('phone');
-      if (!formData.password.trim()) fieldsToHighlight.add('password');
+      // Full Name
+      if (!formData.full_name.trim()) {
+        errors.push('Full name is required');
+        fieldsToHighlight.add('full_name');
+      }
+
+      // Email Validation
+      if (!formData.email.trim()) {
+        errors.push('Email address is required');
+        fieldsToHighlight.add('email');
+      } else if (!validateEmail(formData.email)) {
+        errors.push('Please enter a valid email address');
+        fieldsToHighlight.add('email');
+      }
+
+      // Phone Validation
+      if (!formData.phone.trim()) {
+        errors.push('Phone number is required');
+        fieldsToHighlight.add('phone');
+      } else if (!validatePhone(formData.phone)) {
+        errors.push('Phone number must be exactly 10 digits');
+        fieldsToHighlight.add('phone');
+      }
+
+      // Password Validation
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.valid) {
+        errors.push(...passwordValidation.errors);
+        fieldsToHighlight.add('password');
+      }
     } else if (currentStep === 2) {
       // Validate Professional step
-      if (!formData.qualification.trim()) fieldsToHighlight.add('qualification');
-      if (!formData.experience_years.trim()) fieldsToHighlight.add('experience_years');
-      if (!formData.country.trim()) fieldsToHighlight.add('country');
+      if (!formData.qualification.trim()) {
+        errors.push('Qualification is required');
+        fieldsToHighlight.add('qualification');
+      }
+      if (!formData.experience_years.trim()) {
+        errors.push('Years of experience is required');
+        fieldsToHighlight.add('experience_years');
+      }
+      if (!formData.country.trim()) {
+        errors.push('Country is required');
+        fieldsToHighlight.add('country');
+      }
+
+      // Document validation - Educational and Government are required
+      if (!documents.educational) {
+        errors.push('Educational certificate is required');
+      }
+      if (!documents.government) {
+        errors.push('Government ID is required');
+      }
     } else if (currentStep === 3) {
       // Validate Expertise step
-      if (formData.specialization_areas.length === 0) fieldsToHighlight.add('specialization_areas');
-      if (formData.service_areas.length === 0) fieldsToHighlight.add('service_areas');
+      if (formData.specialization_areas.length === 0) {
+        errors.push('Please add at least one specialization area');
+        fieldsToHighlight.add('specialization_areas');
+      }
+      if (formData.service_areas.length === 0) {
+        errors.push('Please add at least one service area');
+        fieldsToHighlight.add('service_areas');
+      }
     }
 
     if (fieldsToHighlight.size > 0) {
       setHighlightedFields(fieldsToHighlight);
-      // Auto-remove highlights after 2 seconds
-      setTimeout(() => {
-        setHighlightedFields(new Set());
-      }, 2000);
-      return false;
+      setTimeout(() => setHighlightedFields(new Set()), 2000);
     }
 
-    return true;
+    setValidationErrors(errors);
+    return errors.length === 0;
   };
 
   const nextStep = () => {
@@ -430,17 +615,137 @@ export default function ConsultantRegistration() {
   const goToStep = (step: number) => setCurrentStep(step);
 
   const handleSubmit = async () => {
-    // Show loader
     setIsLoading(true);
+    setValidationErrors([]);
 
-    // Simulate API call with delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // STEP 1: Create auth user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.full_name,
+            role: 'consultant',
+            phone: `${formData.phoneCountryCode}${formData.phone}`,
+            qualification: formData.qualification,
+            experience_years: parseInt(formData.experience_years),
+            specialization_areas: formData.specialization_areas,
+          }
+        }
+      });
 
-    // In real app: Call API to create auth user + profile + consultant record
-    console.log("Submitting Final Data:", formData);
+      if (authError) {
+        console.error('Auth Error:', authError);
+        setValidationErrors([authError.message]);
+        setIsLoading(false);
+        return;
+      }
 
-    setIsLoading(false);
-    nextStep(); // Move to Success (Step 5)
+      if (!authData.user) {
+        setValidationErrors(['Failed to create user account. Please try again.']);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('User registered successfully:', authData.user.id);
+
+      // STEP 2: Wait for database trigger to create profile
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // STEP 3: Verify profile was created
+      const { data: profileCheck, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', authData.user.id)
+        .maybeSingle();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Profile check error:', profileError);
+      }
+
+      if (!profileCheck) {
+        setValidationErrors([
+          'Registration incomplete. Please contact support with this information:',
+          `User ID: ${authData.user.id}`,
+          'Error: Database trigger may not be configured.'
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
+      // STEP 4: Upload documents to Supabase Storage
+      const { urls: uploadedUrls, errors: uploadErrors } = await uploadConsultantDocuments(
+        profileCheck.id,
+        documents
+      );
+
+      if (uploadErrors.length > 0) {
+        setValidationErrors([
+          'Some documents failed to upload:',
+          ...uploadErrors
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
+      // STEP 5: Update consultant record with document URLs and service areas
+      const { error: consultantUpdateError } = await supabase
+        .from('consultants')
+        .update({
+          certificate_urls: uploadedUrls,
+          service_areas: formData.service_areas,
+        })
+        .eq('profile_id', profileCheck.id);
+
+      if (consultantUpdateError) {
+        console.error('Consultant update error:', consultantUpdateError);
+        setValidationErrors(['Failed to save consultant data. Please contact support.']);
+        setIsLoading(false);
+        return;
+      }
+
+      // STEP 6: Create approval request
+      const documentMetadata = {
+        educational: uploadedUrls.find(url => url.includes('educational')) || null,
+        professional: uploadedUrls.find(url => url.includes('professional')) || null,
+        experience: uploadedUrls.find(url => url.includes('experience')) || null,
+        government: uploadedUrls.find(url => url.includes('government')) || null,
+        submitted_at: new Date().toISOString(),
+      };
+
+      const { error: approvalError } = await supabase
+        .from('approval_requests')
+        .insert({
+          profile_id: profileCheck.id,
+          request_type: 'registration',
+          status: 'pending',
+          submitted_documents: documentMetadata,
+        });
+
+      if (approvalError) {
+        console.error('Approval request error:', approvalError);
+        // Don't fail completely - this is non-critical
+      }
+
+      // STEP 7: Create welcome notification
+      await supabase.from('notifications').insert({
+        recipient_id: profileCheck.id,
+        type: 'welcome',
+        title: 'Welcome to AgriFusion!',
+        message: 'Your consultant application has been submitted. Our team will review your credentials within 2-3 business days.',
+      });
+
+      // Success - move to next step
+      setIsLoading(false);
+      nextStep(); // Move to success screen
+
+    } catch (error: any) {
+      console.error('Registration Error:', error);
+      const errorMessage = error.message || 'An unexpected error occurred during registration';
+      setValidationErrors([errorMessage]);
+      setIsLoading(false);
+    }
   };
 
   const handleBackToSignup = () => {
@@ -487,7 +792,19 @@ export default function ConsultantRegistration() {
 
       <div className="grid grid-cols-2 gap-4">
         <InputField label="Full Name" name="full_name" icon={User} placeholder="e.g. Dr. John Smith" value={formData.full_name} onChange={handleChange} required isHighlighted={highlightedFields.has('full_name')} />
-        <InputField label="Phone Number" name="phone" icon={Phone} type="tel" placeholder="+91 98765 43210" value={formData.phone} onChange={handleChange} required half maxLength={10} isHighlighted={highlightedFields.has('phone')} />
+        <PhoneInput
+          label="Phone Number"
+          name="phone"
+          icon={Phone}
+          placeholder="312 1234567"
+          value={formData.phone}
+          countryCode={formData.phoneCountryCode}
+          onCountryChange={(code) => setFormData(prev => ({ ...prev, phoneCountryCode: code }))}
+          onChange={handleChange}
+          required
+          half
+          isHighlighted={highlightedFields.has('phone')}
+        />
         <InputField label="Email Address" name="email" icon={Mail} type="email" placeholder="john@consultant.com" value={formData.email} onChange={handleChange} required half isHighlighted={highlightedFields.has('email')} />
         <InputField label="Create Password" name="password" icon={Lock} type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required isHighlighted={highlightedFields.has('password')} />
       </div>
@@ -554,9 +871,7 @@ export default function ConsultantRegistration() {
                 id="edu-certificate"
                 accept=".pdf,.jpg,.jpeg,.png"
                 className="hidden"
-                onChange={(e) => {
-                  // Handle file upload
-                }}
+                onChange={(e) => handleDocumentChange('educational', e)}
               />
               <label
                 htmlFor="edu-certificate"
@@ -567,11 +882,29 @@ export default function ConsultantRegistration() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
-                    Educational Certificate
+                    Educational Certificate *
+                    {documents.educational && (
+                      <span className="ml-2 text-xs text-emerald-600">✓ Uploaded</span>
+                    )}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5">Degree/Diploma in Agriculture (PDF, JPG, PNG)</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {documents.educational ? documents.educational.name : 'Degree/Diploma in Agriculture (PDF, JPG, PNG)'}
+                  </p>
                 </div>
-                <Upload size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                {documents.educational ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      removeDocument('educational');
+                    }}
+                    className="text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                ) : (
+                  <Upload size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                )}
               </label>
             </div>
 
@@ -582,9 +915,7 @@ export default function ConsultantRegistration() {
                 id="prof-license"
                 accept=".pdf,.jpg,.jpeg,.png"
                 className="hidden"
-                onChange={(e) => {
-                  // Handle file upload
-                }}
+                onChange={(e) => handleDocumentChange('professional', e)}
               />
               <label
                 htmlFor="prof-license"
@@ -596,10 +927,28 @@ export default function ConsultantRegistration() {
                 <div className="flex-1">
                   <p className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
                     Professional License
+                    {documents.professional && (
+                      <span className="ml-2 text-xs text-emerald-600">✓ Uploaded</span>
+                    )}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5">Valid agricultural consultant license (if applicable)</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {documents.professional ? documents.professional.name : 'Valid agricultural consultant license (if applicable)'}
+                  </p>
                 </div>
-                <Upload size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                {documents.professional ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      removeDocument('professional');
+                    }}
+                    className="text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                ) : (
+                  <Upload size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                )}
               </label>
             </div>
 
@@ -610,9 +959,7 @@ export default function ConsultantRegistration() {
                 id="exp-certificate"
                 accept=".pdf,.jpg,.jpeg,.png"
                 className="hidden"
-                onChange={(e) => {
-                  // Handle file upload
-                }}
+                onChange={(e) => handleDocumentChange('experience', e)}
               />
               <label
                 htmlFor="exp-certificate"
@@ -624,10 +971,28 @@ export default function ConsultantRegistration() {
                 <div className="flex-1">
                   <p className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
                     Experience Certificate
+                    {documents.experience && (
+                      <span className="ml-2 text-xs text-emerald-600">✓ Uploaded</span>
+                    )}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5">Work experience letters from employers/clients</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {documents.experience ? documents.experience.name : 'Work experience letters from employers/clients'}
+                  </p>
                 </div>
-                <Upload size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                {documents.experience ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      removeDocument('experience');
+                    }}
+                    className="text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                ) : (
+                  <Upload size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                )}
               </label>
             </div>
 
@@ -638,9 +1003,7 @@ export default function ConsultantRegistration() {
                 id="govt-id"
                 accept=".pdf,.jpg,.jpeg,.png"
                 className="hidden"
-                onChange={(e) => {
-                  // Handle file upload
-                }}
+                onChange={(e) => handleDocumentChange('government', e)}
               />
               <label
                 htmlFor="govt-id"
@@ -651,11 +1014,29 @@ export default function ConsultantRegistration() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
-                    Government ID
+                    Government ID *
+                    {documents.government && (
+                      <span className="ml-2 text-xs text-emerald-600">✓ Uploaded</span>
+                    )}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5">Passport, National ID, or Aadhaar Card</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {documents.government ? documents.government.name : 'Passport, National ID, or Aadhaar Card'}
+                  </p>
                 </div>
-                <Upload size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                {documents.government ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      removeDocument('government');
+                    }}
+                    className="text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                ) : (
+                  <Upload size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                )}
               </label>
             </div>
           </div>
@@ -904,18 +1285,18 @@ export default function ConsultantRegistration() {
       <h3 className="text-2xl font-bold text-slate-900 mb-2">Registration Complete!</h3>
       <p className="text-sm text-slate-500 max-w-xs mb-8 leading-relaxed">
         Welcome to AgriFusion, <span className="font-bold text-slate-900">{formData.full_name}</span>.
-        Your consultant profile is pending admin approval.
+        Your consultant application has been submitted for admin review. You'll be notified once approved.
       </p>
 
       <Button
         variant="premium"
         size="lg"
-        onClick={() => router.push('/dashboard/consultant')}
+        onClick={() => router.push('/login')}
         className="w-full max-w-xs shadow-xl shadow-blue-500/20"
         icon={<ArrowRight size={18} />}
         iconPosition="right"
       >
-        Go to Dashboard
+        Go to Login
       </Button>
     </motion.div>
   );
@@ -954,6 +1335,37 @@ export default function ConsultantRegistration() {
                   <p className="text-sm text-slate-500 mt-1">Please provide your details below.</p>
                 </div>
               )}
+
+              {/* Validation Errors */}
+              <AnimatePresence>
+                {validationErrors.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mt-0.5">
+                        <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-red-900 mb-1">Please complete the following:</h3>
+                        <ul className="space-y-1">
+                          {validationErrors.map((error, index) => (
+                            <li key={index} className="text-sm text-red-700 flex items-center gap-2">
+                              <span className="w-1 h-1 rounded-full bg-red-400"></span>
+                              {error}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Content */}
               <AnimatePresence mode="wait">

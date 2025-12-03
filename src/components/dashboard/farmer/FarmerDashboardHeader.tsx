@@ -42,12 +42,19 @@ export const FarmerDashboardHeader = ({
                 <div className="flex items-center gap-4">
 
                     {/* Profile Dropdown */}
-                    <div className="relative">
+                    <div
+                        className="relative"
+                        onMouseEnter={() => setIsProfileMenuOpen(true)}
+                        onMouseLeave={() => setIsProfileMenuOpen(false)}
+                    >
                         <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                            className="flex items-center gap-3 pl-1 pr-2 py-1 rounded-full hover:bg-slate-50/80 transition-all border border-transparent hover:border-slate-200/60"
+                            className={`flex items-center gap-3 pl-1 pr-2 py-1 rounded-full transition-all border ${isProfileMenuOpen
+                                ? 'bg-white border-slate-200 shadow-sm ring-1 ring-slate-900/5'
+                                : 'hover:bg-slate-50/80 border-transparent hover:border-slate-200/60'
+                                }`}
                         >
                             <div className="text-right hidden md:block mr-1">
                                 <div className="flex items-center justify-end gap-1.5">
@@ -85,7 +92,7 @@ export const FarmerDashboardHeader = ({
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
-                                    className="absolute right-0 mt-2 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden z-50 ring-1 ring-slate-900/5"
+                                    className="absolute right-0 mt-1 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden z-50 ring-1 ring-slate-900/5"
                                 >
                                     <div className="p-4 border-b border-slate-100 bg-gradient-to-br from-slate-50 to-white">
                                         <p className="text-sm font-bold text-slate-900 truncate">{farmerName}</p>
