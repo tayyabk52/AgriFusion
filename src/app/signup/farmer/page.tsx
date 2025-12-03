@@ -12,6 +12,7 @@ import { Country, State, City, ICountry, IState, ICity } from 'country-state-cit
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import Loader from '@/components/ui/Loader';
+import { supabase } from '@/lib/supabaseClient';
 
 /**
  * ------------------------------------------------------------------
@@ -22,10 +23,14 @@ const BACKGROUND_IMAGE = "https://images.unsplash.com/photo-1560493676-04071c5f4
 
 const STEPS = [
   { id: 1, title: "Account", subtitle: "Personal Details", icon: User },
-  { id: 2, title: "Farm Profile", subtitle: "Location & Size", icon: MapPin },
-  { id: 3, title: "Crops", subtitle: "Production Info", icon: Sprout },
-  { id: 4, title: "Review", subtitle: "Confirm Data", icon: FileText },
+  { id: 2, title: "Review", subtitle: "Confirm Data", icon: FileText },
 ];
+
+// Temporarily disabled steps (will be configured by consultant later)
+// const DISABLED_STEPS = [
+//   { id: 2, title: "Farm Profile", subtitle: "Location & Size", icon: MapPin },
+//   { id: 3, title: "Crops", subtitle: "Production Info", icon: Sprout },
+// ];
 
 /**
  * ------------------------------------------------------------------
@@ -161,19 +166,24 @@ interface InputFieldProps {
   half?: boolean;
   name: string;
   maxLength?: number;
+  isHighlighted?: boolean;
 }
 
-const InputField = ({ label, icon: Icon, type = "text", placeholder, value, onChange, required, half, name, maxLength }: InputFieldProps) => {
+const InputField = ({ label, icon: Icon, type = "text", placeholder, value, onChange, required, half, name, maxLength, isHighlighted }: InputFieldProps) => {
   const isFilled = value && value.length > 0;
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className={`relative group ${half ? 'col-span-1' : 'col-span-2'}`}>
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1 group-focus-within:text-emerald-600 transition-colors">
+      <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1 transition-colors ${
+        isHighlighted ? 'text-red-500 animate-pulse' : 'text-slate-500 group-focus-within:text-emerald-600'
+      }`}>
         {label} {required && <span className="text-red-400">*</span>}
       </label>
       <div className="relative">
-        <div className="absolute top-3 left-3.5 text-slate-400 group-focus-within:text-emerald-500 transition-colors">
+        <div className={`absolute top-3 left-3.5 transition-colors ${
+          isHighlighted ? 'text-red-500' : 'text-slate-400 group-focus-within:text-emerald-500'
+        }`}>
           <Icon size={16} />
         </div>
         <input
@@ -181,11 +191,13 @@ const InputField = ({ label, icon: Icon, type = "text", placeholder, value, onCh
           name={name}
           maxLength={maxLength}
           className={`
-            w-full bg-slate-50/50 border border-slate-200 text-slate-900 text-sm rounded-xl
-            focus:ring-0 focus:border-emerald-500 block pl-10 ${type === 'password' ? 'pr-10' : 'pr-4'} py-2.5
+            w-full bg-slate-50/50 border text-slate-900 text-sm rounded-xl
+            focus:ring-0 block pl-10 ${type === 'password' ? 'pr-10' : 'pr-4'} py-2.5
             transition-all outline-none placeholder:text-slate-400 font-medium
-            group-focus-within:bg-white group-focus-within:shadow-lg group-focus-within:shadow-emerald-500/5
-            ${isFilled ? 'border-slate-300 bg-white' : ''}
+            ${isHighlighted
+              ? 'border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
+              : `border-slate-200 focus:border-emerald-500 group-focus-within:bg-white group-focus-within:shadow-lg group-focus-within:shadow-emerald-500/5 ${isFilled ? 'border-slate-300 bg-white' : ''}`
+            }
           `}
           placeholder={placeholder}
           value={value}
@@ -375,22 +387,131 @@ export default function FarmerRegistration() {
     });
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 5));
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [highlightedFields, setHighlightedFields] = useState<Set<string>>(new Set());
+
+  const validateCurrentStep = () => {
+    const errors: string[] = [];
+    const fieldsToHighlight = new Set<string>();
+
+    if (currentStep === 1) {
+      // Validate Account step
+      if (!formData.full_name.trim()) {
+        errors.push('Full name is required');
+        fieldsToHighlight.add('full_name');
+      }
+      if (!formData.email.trim()) {
+        errors.push('Email address is required');
+        fieldsToHighlight.add('email');
+      }
+      if (!formData.phone.trim()) {
+        errors.push('Phone number is required');
+        fieldsToHighlight.add('phone');
+      }
+      if (!formData.password.trim()) {
+        errors.push('Password is required');
+        fieldsToHighlight.add('password');
+      }
+    }
+
+    if (fieldsToHighlight.size > 0) {
+      setHighlightedFields(fieldsToHighlight);
+      setTimeout(() => setHighlightedFields(new Set()), 2000);
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
+  const nextStep = () => {
+    if (!validateCurrentStep()) {
+      return;
+    }
+    setValidationErrors([]);
+    setCurrentStep(prev => Math.min(prev + 1, 3));
+  };
+
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
   const goToStep = (step: number) => setCurrentStep(step);
 
   const handleSubmit = async () => {
-    // Show loader
     setIsLoading(true);
+    setValidationErrors([]);
 
-    // Simulate API call with delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Step 1: Create auth user with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.full_name,
+            role: 'farmer',
+            phone: formData.phone,
+          }
+        }
+      });
 
-    // In real app: Call API to create auth user + profile + farmer record
-    console.log("Submitting Final Data:", formData);
+      if (authError) {
+        console.error('Auth Error:', authError);
+        setValidationErrors([authError.message]);
+        setIsLoading(false);
+        return;
+      }
 
-    setIsLoading(false);
-    nextStep(); // Move to Success (Step 5)
+      if (!authData.user) {
+        setValidationErrors(['Failed to create user account. Please try again.']);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('User registered successfully:', authData.user.id);
+
+      // Wait for database trigger to create profile
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Verify profile was created
+      const { data: profileCheck, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', authData.user.id)
+        .maybeSingle();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Profile check error:', profileError);
+      }
+
+      if (!profileCheck) {
+        // Profile wasn't created - show helpful error
+        setValidationErrors([
+          'Registration incomplete. Please contact support with this information:',
+          `User ID: ${authData.user.id}`,
+          'Error: Database trigger may not be configured. See EMERGENCY_FIX.sql'
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Profile exists - proceed to success
+      setIsLoading(false);
+      nextStep();
+
+    } catch (error: any) {
+      console.error('Registration Error:', error);
+      const errorMessage = error.message || 'An unexpected error occurred during registration';
+
+      if (errorMessage.includes('JWT') || errorMessage.includes('sub claim')) {
+        setValidationErrors([
+          'Registration failed: Database not properly configured.',
+          'Please ask administrator to run EMERGENCY_FIX.sql in Supabase.',
+          'Technical details: Profile creation trigger not working.'
+        ]);
+      } else {
+        setValidationErrors([errorMessage]);
+      }
+
+      setIsLoading(false);
+    }
   };
 
   const handleBackToSignup = () => {
@@ -430,10 +551,10 @@ export default function FarmerRegistration() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <InputField label="Full Name" name="full_name" icon={User} placeholder="e.g. John Doe" value={formData.full_name} onChange={handleChange} required />
-        <InputField label="Phone Number" name="phone" icon={Phone} type="tel" placeholder="+91 98765 43210" value={formData.phone} onChange={handleChange} required half maxLength={10} />
-        <InputField label="Email Address" name="email" icon={Mail} type="email" placeholder="john@farm.com" value={formData.email} onChange={handleChange} required half />
-        <InputField label="Create Password" name="password" icon={Lock} type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
+        <InputField label="Full Name" name="full_name" icon={User} placeholder="e.g. John Doe" value={formData.full_name} onChange={handleChange} required isHighlighted={highlightedFields.has('full_name')} />
+        <InputField label="Phone Number" name="phone" icon={Phone} type="tel" placeholder="+91 98765 43210" value={formData.phone} onChange={handleChange} required half maxLength={20} isHighlighted={highlightedFields.has('phone')} />
+        <InputField label="Email Address" name="email" icon={Mail} type="email" placeholder="john@farm.com" value={formData.email} onChange={handleChange} required half isHighlighted={highlightedFields.has('email')} />
+        <InputField label="Create Password" name="password" icon={Lock} type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required isHighlighted={highlightedFields.has('password')} />
       </div>
     </motion.div>
   );
@@ -656,46 +777,75 @@ export default function FarmerRegistration() {
 
       <main className="pt-16 h-screen flex overflow-hidden">
         {/* Fixed Sidebar for Desktop */}
-        <StepSidebar currentStep={currentStep > 4 ? 4 : currentStep} />
+        <StepSidebar currentStep={currentStep > 2 ? 2 : currentStep} />
 
         {/* Scrollable Content Area */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
             <div className="max-w-2xl mx-auto w-full">
               {/* Mobile Step Indicator */}
-              {currentStep < 5 && (
+              {currentStep < 3 && (
                 <div className="lg:hidden mb-6 flex items-center justify-between">
                   <div>
                     <h2 className="text-xl font-bold text-slate-900">{STEPS[currentStep - 1].title}</h2>
                     <p className="text-xs text-slate-500">{STEPS[currentStep - 1].subtitle}</p>
                   </div>
                   <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm border border-emerald-100">
-                    {currentStep}/4
+                    {currentStep}/2
                   </div>
                 </div>
               )}
 
               {/* Desktop Header */}
-              {currentStep < 5 && (
+              {currentStep < 3 && (
                 <div className="hidden lg:block mb-8">
                   <h1 className="text-2xl font-bold text-slate-900">{STEPS[currentStep - 1].title}</h1>
                   <p className="text-sm text-slate-500 mt-1">Please provide your details below.</p>
                 </div>
               )}
 
+              {/* Validation Errors */}
+              <AnimatePresence>
+                {validationErrors.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mt-0.5">
+                        <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-red-900 mb-1">Please complete the following:</h3>
+                        <ul className="space-y-1">
+                          {validationErrors.map((error, index) => (
+                            <li key={index} className="text-sm text-red-700 flex items-center gap-2">
+                              <span className="w-1 h-1 rounded-full bg-red-400"></span>
+                              {error}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Content */}
               <AnimatePresence mode="wait">
                 {currentStep === 1 && renderAccountStep()}
-                {currentStep === 2 && renderFarmStep()}
-                {currentStep === 3 && renderCropStep()}
-                {currentStep === 4 && renderReviewStep()}
-                {currentStep === 5 && renderSuccess()}
+                {currentStep === 2 && renderReviewStep()}
+                {currentStep === 3 && renderSuccess()}
               </AnimatePresence>
             </div>
           </div>
 
           {/* Footer Actions */}
-          {currentStep < 5 && (
+          {currentStep < 3 && (
             <div className="p-4 sm:p-6 border-t border-slate-200 bg-white/80 backdrop-blur-sm z-10">
               <div className="max-w-2xl mx-auto w-full flex justify-between items-center">
                 <Button
@@ -710,12 +860,12 @@ export default function FarmerRegistration() {
                 <Button
                   variant="emerald"
                   rounded="full"
-                  onClick={currentStep === 4 ? handleSubmit : nextStep}
+                  onClick={currentStep === 2 ? handleSubmit : nextStep}
                   className="px-8"
                   icon={<ArrowRight size={18} />}
                   iconPosition="right"
                 >
-                  {currentStep === 4 ? 'Submit Application' : 'Continue'}
+                  {currentStep === 2 ? 'Submit Application' : 'Continue'}
                 </Button>
               </div>
             </div>

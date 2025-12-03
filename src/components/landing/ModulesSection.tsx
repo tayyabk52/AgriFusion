@@ -113,6 +113,7 @@ const features = [
         description: "AI-powered soil analysis using image recognition to determine soil composition and health metrics.",
         className: "col-span-3 lg:col-span-1",
         background: <div className="absolute inset-0"><img src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&q=80" alt="Soil Analysis" className="w-full h-full object-cover" /></div>,
+        href: "/soil-analysis",
     },
     {
         Icon: Sprout,

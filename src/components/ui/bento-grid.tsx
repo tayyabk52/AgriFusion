@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const BentoGrid = ({
@@ -28,6 +29,7 @@ const BentoCard = ({
     Icon,
     description,
     index = 0,
+    href,
 }: {
     name: string;
     className: string;
@@ -35,8 +37,9 @@ const BentoCard = ({
     Icon: React.ElementType;
     description: string;
     index?: number;
+    href?: string;
 }) => {
-    return (
+    const cardContent = (
         <motion.div
             key={name}
             initial={{ opacity: 0, y: 40, scale: 0.95 }}
@@ -171,6 +174,16 @@ const BentoCard = ({
             />
         </motion.div>
     );
+
+    if (href) {
+        return (
+            <Link href={href as string} className="block">
+                {cardContent}
+            </Link>
+        );
+    }
+
+    return cardContent;
 };
 
 export { BentoGrid, BentoCard };

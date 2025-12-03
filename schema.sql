@@ -132,11 +132,28 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
-    -- Update the handle_new_user function to handle Google sign-in
+-- Update the handle_new_user function to handle all user metadata including phone
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
+DECLARE
+    new_profile_id UUID;
+    user_role TEXT;
 BEGIN
-    INSERT INTO public.profiles (auth_user_id, email, full_name, role, status, avatar_url)
+    -- Extract role
+    user_role := COALESCE(new.raw_user_meta_data->>'role', 'farmer');
+
+    -- Insert into profiles table
+    INSERT INTO public.profiles (
+        auth_user_id,
+        email,
+        full_name,
+        role,
+        status,
+        avatar_url,
+        phone,
+        is_verified,
+        email_verified_at
+    )
     VALUES (
         new.id,
         new.email,
@@ -145,13 +162,69 @@ BEGIN
             new.raw_user_meta_data->>'name',
             ''
         ),
-        COALESCE(new.raw_user_meta_data->>'role', 'farmer'),
-        CASE 
-            WHEN new.raw_user_meta_data->>'role' = 'admin' THEN 'active'
+        user_role,
+        CASE
+            WHEN user_role = 'admin' THEN 'active'
             ELSE 'pending'
         END,
-        new.raw_user_meta_data->>'avatar_url'
-    );
+        new.raw_user_meta_data->>'avatar_url',
+        new.raw_user_meta_data->>'phone',
+        CASE WHEN new.email_confirmed_at IS NOT NULL THEN TRUE ELSE FALSE END,
+        new.email_confirmed_at
+    )
+    RETURNING id INTO new_profile_id;
+
+    -- If user is a farmer, create entry in farmers table
+    IF user_role = 'farmer' THEN
+        INSERT INTO public.farmers (profile_id)
+        VALUES (new_profile_id);
+    END IF;
+
+    -- If user is a consultant, create entry in consultants table
+    IF user_role = 'consultant' THEN
+        INSERT INTO public.consultants (
+            profile_id,
+            qualification,
+            specialization_areas,
+            experience_years
+        )
+        VALUES (
+            new_profile_id,
+            COALESCE(new.raw_user_meta_data->>'qualification', 'Not specified'),
+            COALESCE(
+                ARRAY(SELECT jsonb_array_elements_text(new.raw_user_meta_data->'specialization_areas')),
+                ARRAY[]::TEXT[]
+            ),
+            COALESCE((new.raw_user_meta_data->>'experience_years')::INTEGER, 0)
+        );
+    END IF;
+
     RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger for handling email verification updates
+CREATE OR REPLACE FUNCTION public.handle_email_verification()
+RETURNS trigger AS $$
+BEGIN
+    -- Update profile when email is verified
+    IF NEW.email_confirmed_at IS NOT NULL AND OLD.email_confirmed_at IS NULL THEN
+        UPDATE public.profiles
+        SET
+            is_verified = TRUE,
+            email_verified_at = NEW.email_confirmed_at,
+            updated_at = NOW()
+        WHERE auth_user_id = NEW.id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Drop existing trigger if exists and create new one
+DROP TRIGGER IF EXISTS on_email_verified ON auth.users;
+CREATE TRIGGER on_email_verified
+    AFTER UPDATE ON auth.users
+    FOR EACH ROW
+    WHEN (OLD.email_confirmed_at IS NULL AND NEW.email_confirmed_at IS NOT NULL)
+    EXECUTE FUNCTION public.handle_email_verification();

@@ -5,6 +5,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, FlaskConical, Sprout, Layers, Recycle, UserCheck, MessageCircle } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 
 function cn(...inputs: ClassValue[]) {
@@ -144,19 +145,21 @@ export const HeroSection = () => {
                         </Button>
 
                         {/* Updated Button: Soil Analysis */}
-                        <Button
-                            variant="glass"
-                            rounded="full"
-                            size="xl"
-                            className="px-8 py-4"
-                            icon={
-                                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-                                    <FlaskConical size={16} fill="currentColor" className="opacity-80" />
-                                </div>
-                            }
-                        >
-                            Soil Analysis
-                        </Button>
+                        <Link href="/soil-analysis">
+                            <Button
+                                variant="glass"
+                                rounded="full"
+                                size="xl"
+                                className="px-8 py-4"
+                                icon={
+                                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                                        <FlaskConical size={16} fill="currentColor" className="opacity-80" />
+                                    </div>
+                                }
+                            >
+                                Soil Analysis
+                            </Button>
+                        </Link>
                     </motion.div>
                 </div>
 

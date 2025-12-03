@@ -158,7 +158,7 @@ export default function SignupPage() {
                                         Already have an account?
                                     </span>
                                     <a
-                                        href="/login"
+                                        href="/signin"
                                         className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-sm shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 group/btn"
                                     >
                                         <span>Log in here</span>

@@ -175,19 +175,20 @@ interface InputFieldProps {
   name: string;
   maxLength?: number;
   min?: number;
+  isHighlighted?: boolean;
 }
 
-const InputField = ({ label, icon: Icon, type = "text", placeholder, value, onChange, required, half, name, maxLength, min }: InputFieldProps) => {
+const InputField = ({ label, icon: Icon, type = "text", placeholder, value, onChange, required, half, name, maxLength, min, isHighlighted }: InputFieldProps) => {
   const isFilled = value && value.length > 0;
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className={`relative group ${half ? 'col-span-1' : 'col-span-2'}`}>
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1 group-focus-within:text-blue-600 transition-colors">
+      <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1 transition-colors ${isHighlighted ? 'text-red-500 animate-pulse' : 'text-slate-500 group-focus-within:text-blue-600'}`}>
         {label} {required && <span className="text-red-400">*</span>}
       </label>
       <div className="relative">
-        <div className="absolute top-3 left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+        <div className={`absolute top-3 left-3.5 transition-colors ${isHighlighted ? 'text-red-500' : 'text-slate-400 group-focus-within:text-blue-500'}`}>
           <Icon size={16} />
         </div>
         <input
@@ -196,11 +197,13 @@ const InputField = ({ label, icon: Icon, type = "text", placeholder, value, onCh
           maxLength={maxLength}
           min={min}
           className={`
-            w-full bg-slate-50/50 border border-slate-200 text-slate-900 text-sm rounded-xl
-            focus:ring-0 focus:border-blue-500 block pl-10 ${type === 'password' ? 'pr-10' : 'pr-4'} py-2.5
+            w-full bg-slate-50/50 border text-slate-900 text-sm rounded-xl
+            focus:ring-0 block pl-10 ${type === 'password' ? 'pr-10' : 'pr-4'} py-2.5
             transition-all outline-none placeholder:text-slate-400 font-medium
-            group-focus-within:bg-white group-focus-within:shadow-lg group-focus-within:shadow-blue-500/5
-            ${isFilled ? 'border-slate-300 bg-white' : ''}
+            ${isHighlighted
+              ? 'border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
+              : `border-slate-200 focus:border-blue-500 group-focus-within:bg-white group-focus-within:shadow-lg group-focus-within:shadow-blue-500/5 ${isFilled ? 'border-slate-300 bg-white' : ''}`
+            }
           `}
           placeholder={placeholder}
           value={value}
@@ -239,29 +242,32 @@ interface SelectFieldProps {
   half?: boolean;
   name: string;
   options: { value: string; label: string; }[];
+  isHighlighted?: boolean;
 }
 
-const SelectField = ({ label, icon: Icon, placeholder, value, onChange, required, half, name, options }: SelectFieldProps) => {
+const SelectField = ({ label, icon: Icon, placeholder, value, onChange, required, half, name, options, isHighlighted }: SelectFieldProps) => {
   const isFilled = value && value.length > 0;
 
   return (
     <div className={`relative group ${half ? 'col-span-1' : 'col-span-2'}`}>
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1 group-focus-within:text-blue-600 transition-colors">
+      <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1 transition-colors ${isHighlighted ? 'text-red-500 animate-pulse' : 'text-slate-500 group-focus-within:text-blue-600'}`}>
         {label} {required && <span className="text-red-400">*</span>}
       </label>
       <div className="relative">
-        <div className="absolute top-3 left-3.5 text-slate-400 group-focus-within:text-blue-500 transition-colors z-10 pointer-events-none">
+        <div className={`absolute top-3 left-3.5 transition-colors z-10 pointer-events-none ${isHighlighted ? 'text-red-500' : 'text-slate-400 group-focus-within:text-blue-500'}`}>
           <Icon size={16} />
         </div>
         <select
           name={name}
           className={`
-            premium-select w-full bg-slate-50/50 border border-slate-200 text-slate-900 text-sm rounded-xl
-            focus:ring-0 focus:border-blue-500 block pl-10 pr-10 py-2.5
+            premium-select w-full bg-slate-50/50 border text-slate-900 text-sm rounded-xl
+            focus:ring-0 block pl-10 pr-10 py-2.5
             transition-all outline-none font-medium appearance-none
-            group-focus-within:bg-white group-focus-within:shadow-lg group-focus-within:shadow-blue-500/5
-            ${isFilled ? 'border-slate-300 bg-white text-slate-900' : 'text-slate-400'}
             cursor-pointer hover:border-slate-300 hover:bg-white/80
+            ${isHighlighted
+              ? 'border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
+              : `border-slate-200 focus:border-blue-500 group-focus-within:bg-white group-focus-within:shadow-lg group-focus-within:shadow-blue-500/5 ${isFilled ? 'border-slate-300 bg-white text-slate-900' : 'text-slate-400'}`
+            }
           `}
           value={value}
           onChange={onChange}
@@ -379,7 +385,47 @@ export default function ConsultantRegistration() {
     });
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 5));
+  const [highlightedFields, setHighlightedFields] = useState<Set<string>>(new Set());
+
+  const validateCurrentStep = () => {
+    const fieldsToHighlight = new Set<string>();
+
+    if (currentStep === 1) {
+      // Validate Account step
+      if (!formData.full_name.trim()) fieldsToHighlight.add('full_name');
+      if (!formData.email.trim()) fieldsToHighlight.add('email');
+      if (!formData.phone.trim()) fieldsToHighlight.add('phone');
+      if (!formData.password.trim()) fieldsToHighlight.add('password');
+    } else if (currentStep === 2) {
+      // Validate Professional step
+      if (!formData.qualification.trim()) fieldsToHighlight.add('qualification');
+      if (!formData.experience_years.trim()) fieldsToHighlight.add('experience_years');
+      if (!formData.country.trim()) fieldsToHighlight.add('country');
+    } else if (currentStep === 3) {
+      // Validate Expertise step
+      if (formData.specialization_areas.length === 0) fieldsToHighlight.add('specialization_areas');
+      if (formData.service_areas.length === 0) fieldsToHighlight.add('service_areas');
+    }
+
+    if (fieldsToHighlight.size > 0) {
+      setHighlightedFields(fieldsToHighlight);
+      // Auto-remove highlights after 2 seconds
+      setTimeout(() => {
+        setHighlightedFields(new Set());
+      }, 2000);
+      return false;
+    }
+
+    return true;
+  };
+
+  const nextStep = () => {
+    if (!validateCurrentStep()) {
+      return;
+    }
+    setCurrentStep(prev => Math.min(prev + 1, 5));
+  };
+
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
   const goToStep = (step: number) => setCurrentStep(step);
 
@@ -399,6 +445,12 @@ export default function ConsultantRegistration() {
 
   const handleBackToSignup = () => {
     router.push('/signup');
+  };
+
+  // Helper to get field classes with highlight animation
+  const getFieldClasses = (fieldName: string, baseClasses: string) => {
+    const isHighlighted = highlightedFields.has(fieldName);
+    return `${baseClasses} ${isHighlighted ? 'ring-2 ring-red-400 border-red-400 animate-shake' : ''}`;
   };
 
   // ---------------- STEP CONTENT RENDERERS ---------------- //
@@ -434,10 +486,10 @@ export default function ConsultantRegistration() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <InputField label="Full Name" name="full_name" icon={User} placeholder="e.g. Dr. John Smith" value={formData.full_name} onChange={handleChange} required />
-        <InputField label="Phone Number" name="phone" icon={Phone} type="tel" placeholder="+91 98765 43210" value={formData.phone} onChange={handleChange} required half maxLength={10} />
-        <InputField label="Email Address" name="email" icon={Mail} type="email" placeholder="john@consultant.com" value={formData.email} onChange={handleChange} required half />
-        <InputField label="Create Password" name="password" icon={Lock} type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
+        <InputField label="Full Name" name="full_name" icon={User} placeholder="e.g. Dr. John Smith" value={formData.full_name} onChange={handleChange} required isHighlighted={highlightedFields.has('full_name')} />
+        <InputField label="Phone Number" name="phone" icon={Phone} type="tel" placeholder="+91 98765 43210" value={formData.phone} onChange={handleChange} required half maxLength={10} isHighlighted={highlightedFields.has('phone')} />
+        <InputField label="Email Address" name="email" icon={Mail} type="email" placeholder="john@consultant.com" value={formData.email} onChange={handleChange} required half isHighlighted={highlightedFields.has('email')} />
+        <InputField label="Create Password" name="password" icon={Lock} type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required isHighlighted={highlightedFields.has('password')} />
       </div>
     </motion.div>
   );
@@ -460,6 +512,7 @@ export default function ConsultantRegistration() {
           value={formData.qualification}
           onChange={handleChange}
           required
+          isHighlighted={highlightedFields.has('qualification')}
         />
         <InputField
           label="Years of Experience"
@@ -472,6 +525,7 @@ export default function ConsultantRegistration() {
           required
           half
           min={0}
+          isHighlighted={highlightedFields.has('experience_years')}
         />
         <SelectField
           label="Country"
@@ -483,6 +537,7 @@ export default function ConsultantRegistration() {
           required
           half
           options={countryOptions}
+          isHighlighted={highlightedFields.has('country')}
         />
 
         {/* Document Upload Section */}
@@ -623,8 +678,14 @@ export default function ConsultantRegistration() {
       className="space-y-6"
     >
       {/* Specialization Areas */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+      <div className={`bg-white rounded-xl p-5 shadow-sm transition-all ${
+        highlightedFields.has('specialization_areas')
+          ? 'border-2 border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
+          : 'border border-slate-200'
+      }`}>
+        <label className={`block text-xs font-bold uppercase tracking-wider mb-3 transition-colors ${
+          highlightedFields.has('specialization_areas') ? 'text-red-500 animate-pulse' : 'text-slate-500'
+        }`}>
           Specialization Areas *
         </label>
 
@@ -685,8 +746,14 @@ export default function ConsultantRegistration() {
       </div>
 
       {/* Service Areas */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+      <div className={`bg-white rounded-xl p-5 shadow-sm transition-all ${
+        highlightedFields.has('service_areas')
+          ? 'border-2 border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
+          : 'border border-slate-200'
+      }`}>
+        <label className={`block text-xs font-bold uppercase tracking-wider mb-3 transition-colors ${
+          highlightedFields.has('service_areas') ? 'text-red-500 animate-pulse' : 'text-slate-500'
+        }`}>
           Service Areas (Districts/Cities)
         </label>
 

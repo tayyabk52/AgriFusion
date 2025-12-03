@@ -135,47 +135,47 @@ export const Navbar = () => {
 
                         {/* NAVIGATION LINKS */}
                         <nav className="hidden md:flex items-center gap-1">
-                        {navItems.map((item) => (
-                            <motion.div key={item.name} variants={itemVariants}>
-                                <Link
-                                    href={item.href}
-                                    onMouseEnter={() => setHoveredTab(item.name)}
-                                    onMouseLeave={() => setHoveredTab(null)}
-                                    className={cn(
-                                        'relative px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-300',
-                                        pathname === item.href
-                                            ? 'text-emerald-700'
-                                            : 'text-slate-600 hover:text-slate-900'
-                                    )}
-                                >
-                                    {/* Active page indicator */}
-                                    {pathname === item.href && (
-                                        <motion.div
-                                            layoutId="active-pill"
-                                            className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg -z-10 border border-emerald-200/50"
-                                            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                                        />
-                                    )}
+                            {navItems.map((item) => (
+                                <motion.div key={item.name} variants={itemVariants}>
+                                    <Link
+                                        href={item.href}
+                                        onMouseEnter={() => setHoveredTab(item.name)}
+                                        onMouseLeave={() => setHoveredTab(null)}
+                                        className={cn(
+                                            'relative px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-300',
+                                            pathname === item.href
+                                                ? 'text-emerald-700'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        )}
+                                    >
+                                        {/* Active page indicator */}
+                                        {pathname === item.href && (
+                                            <motion.div
+                                                layoutId="active-pill"
+                                                className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg -z-10 border border-emerald-200/50"
+                                                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                                            />
+                                        )}
 
-                                    {/* Hover indicator */}
-                                    {hoveredTab === item.name && pathname !== item.href && (
-                                        <motion.div
-                                            layoutId="nav-pill"
-                                            className="absolute inset-0 bg-slate-50 rounded-lg -z-10"
-                                            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                                        />
-                                    )}
-                                    {item.name}
-                                </Link>
-                            </motion.div>
-                        ))}
+                                        {/* Hover indicator */}
+                                        {hoveredTab === item.name && pathname !== item.href && (
+                                            <motion.div
+                                                layoutId="nav-pill"
+                                                className="absolute inset-0 bg-slate-50 rounded-lg -z-10"
+                                                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                                            />
+                                        )}
+                                        {item.name}
+                                    </Link>
+                                </motion.div>
+                            ))}
                         </nav>
                     </div>
 
                     {/* 2. RIGHT: AUTH BUTTONS & Mobile Toggle */}
                     <div className="flex items-center gap-2.5 z-10">
                         <motion.div variants={itemVariants} className="hidden md:flex items-center gap-2.5">
-                            <Link href="/login">
+                            <Link href="/signin">
                                 <Button variant="glass" rounded="full" size="sm" className="pl-6 pr-6 font-semibold">
                                     Sign In
                                 </Button>
@@ -254,7 +254,7 @@ export const Navbar = () => {
                         <motion.div variants={mobileItemVariants} className="h-px bg-slate-100 my-2" />
                         <div className="grid grid-cols-2 gap-3">
                             <motion.div variants={mobileItemVariants}>
-                                <Link href="/login" className="flex justify-center" onClick={() => setIsMobileMenuOpen(false)}>
+                                <Link href="/signin" className="flex justify-center" onClick={() => setIsMobileMenuOpen(false)}>
                                     <Button variant="secondary" rounded="xl" fullWidth className="py-3 border border-slate-100 font-semibold">
                                         Sign In
                                     </Button>
