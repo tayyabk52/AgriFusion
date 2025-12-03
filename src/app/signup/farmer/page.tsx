@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import Loader from '@/components/ui/Loader';
 import { supabase } from '@/lib/supabaseClient';
+import * as flags from 'country-flag-icons/react/3x2';
 
 /**
  * ------------------------------------------------------------------
@@ -175,15 +176,13 @@ const InputField = ({ label, icon: Icon, type = "text", placeholder, value, onCh
 
   return (
     <div className={`relative group ${half ? 'col-span-1' : 'col-span-2'}`}>
-      <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1 transition-colors ${
-        isHighlighted ? 'text-red-500 animate-pulse' : 'text-slate-500 group-focus-within:text-emerald-600'
-      }`}>
+      <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1 transition-colors ${isHighlighted ? 'text-red-500 animate-pulse' : 'text-slate-500 group-focus-within:text-emerald-600'
+        }`}>
         {label} {required && <span className="text-red-400">*</span>}
       </label>
       <div className="relative">
-        <div className={`absolute top-3 left-3.5 transition-colors ${
-          isHighlighted ? 'text-red-500' : 'text-slate-400 group-focus-within:text-emerald-500'
-        }`}>
+        <div className={`absolute top-3 left-3.5 transition-colors ${isHighlighted ? 'text-red-500' : 'text-slate-400 group-focus-within:text-emerald-500'
+          }`}>
           <Icon size={16} />
         </div>
         <input
@@ -216,6 +215,108 @@ const InputField = ({ label, icon: Icon, type = "text", placeholder, value, onCh
         )}
         {/* Active Border Bottom Accent */}
         <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-emerald-500 scale-x-0 group-focus-within:scale-x-100 transition-transform duration-300 origin-center" />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * ------------------------------------------------------------------
+ * COMPONENT: Phone Input Field
+ * ------------------------------------------------------------------
+ */
+interface PhoneInputProps {
+  label: string;
+  icon: React.ElementType;
+  placeholder: string;
+  value: string;
+  countryCode: string;
+  onCountryChange: (code: string) => void;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+  half?: boolean;
+  name: string;
+  isHighlighted?: boolean;
+}
+
+const PhoneInput = ({ label, icon: Icon, placeholder, value, countryCode, onCountryChange, onChange, required, half, name, isHighlighted }: PhoneInputProps) => {
+  const isFilled = value && value.length > 0;
+  const countries = Country.getAllCountries();
+  const selectedCountry = countries.find(c => c.phonecode === countryCode.replace('+', ''));
+
+  // Dynamically get the flag component
+  const FlagComponent = selectedCountry ? (flags as any)[selectedCountry.isoCode] : null;
+
+  return (
+    <div className={`relative group ${half ? 'col-span-1' : 'col-span-2'}`}>
+      <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ml-1 transition-colors ${isHighlighted ? 'text-red-500 animate-pulse' : 'text-slate-500 group-focus-within:text-emerald-600'
+        }`}>
+        {label} {required && <span className="text-red-400">*</span>}
+      </label>
+      <div className="relative flex gap-2">
+        {/* Country Code Dropdown */}
+        <div className="relative w-1/3 min-w-[140px]">
+          <div className="absolute inset-0 flex items-center pl-3 z-10 pointer-events-none text-slate-900 text-sm font-medium">
+            {FlagComponent && (
+              <FlagComponent
+                className="mr-2 rounded-sm"
+                style={{ width: '24px', height: 'auto' }}
+              />
+            )}
+            <span>{countryCode}</span>
+          </div>
+          <select
+            value={countryCode}
+            onChange={(e) => onCountryChange(e.target.value)}
+            className={`
+              w-full bg-slate-50/50 border text-transparent text-sm rounded-xl
+              focus:ring-0 focus:border-emerald-500 block pl-10 pr-8 py-2.5
+              transition-all outline-none font-medium appearance-none relative z-20
+              ${isHighlighted ? 'border-red-400 bg-red-50/30' : 'border-slate-200'}
+            `}
+            style={{ color: 'transparent' }}
+          >
+            {countries.map((country) => (
+              <option key={country.isoCode} value={`+${country.phonecode}`} className="text-slate-900">
+                {country.flag} +{country.phonecode} ({country.isoCode})
+              </option>
+            ))}
+          </select>
+          <div className="absolute top-3 right-2 pointer-events-none text-slate-400 z-20">
+            <ChevronRight size={14} className="rotate-90" />
+          </div>
+        </div>
+
+        {/* Phone Number Input */}
+        <div className="relative flex-1">
+          <div className={`absolute top-3 left-3.5 transition-colors ${isHighlighted ? 'text-red-500' : 'text-slate-400 group-focus-within:text-emerald-500'
+            }`}>
+            <Icon size={16} />
+          </div>
+          <input
+            type="tel"
+            name={name}
+            maxLength={10}
+            className={`
+              w-full bg-slate-50/50 border text-slate-900 text-sm rounded-xl
+              focus:ring-0 block pl-10 pr-4 py-2.5
+              transition-all outline-none placeholder:text-slate-400 font-medium
+              ${isHighlighted
+                ? 'border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
+                : `border-slate-200 focus:border-emerald-500 group-focus-within:bg-white group-focus-within:shadow-lg group-focus-within:shadow-emerald-500/5 ${isFilled ? 'border-slate-300 bg-white' : ''}`
+              }
+            `}
+            placeholder={placeholder}
+            value={value}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, '');
+              onChange({ ...e, target: { ...e.target, name, value: val } });
+            }}
+            required={required}
+          />
+          {/* Active Border Bottom Accent */}
+          <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-emerald-500 scale-x-0 group-focus-within:scale-x-100 transition-transform duration-300 origin-center" />
+        </div>
       </div>
     </div>
   );
@@ -313,6 +414,7 @@ export default function FarmerRegistration() {
     full_name: '',
     email: '',
     phone: '',
+    phoneCountryCode: '+92', // Default to Pakistan
     password: '',
     farm_name: '',
     country: '',
@@ -400,16 +502,32 @@ export default function FarmerRegistration() {
         errors.push('Full name is required');
         fieldsToHighlight.add('full_name');
       }
+
+      // Email Validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!formData.email.trim()) {
         errors.push('Email address is required');
         fieldsToHighlight.add('email');
+      } else if (!emailRegex.test(formData.email)) {
+        errors.push('Please enter a valid email address');
+        fieldsToHighlight.add('email');
       }
+
+      // Phone Validation
       if (!formData.phone.trim()) {
         errors.push('Phone number is required');
         fieldsToHighlight.add('phone');
+      } else if (formData.phone.length !== 10) {
+        errors.push('Phone number must be exactly 10 digits');
+        fieldsToHighlight.add('phone');
       }
+
+      // Password Validation
       if (!formData.password.trim()) {
         errors.push('Password is required');
+        fieldsToHighlight.add('password');
+      } else if (formData.password.length < 8) {
+        errors.push('Password must be at least 8 characters long');
         fieldsToHighlight.add('password');
       }
     }
@@ -447,7 +565,7 @@ export default function FarmerRegistration() {
           data: {
             full_name: formData.full_name,
             role: 'farmer',
-            phone: formData.phone,
+            phone: `${formData.phoneCountryCode}${formData.phone}`,
           }
         }
       });
@@ -552,7 +670,19 @@ export default function FarmerRegistration() {
 
       <div className="grid grid-cols-2 gap-4">
         <InputField label="Full Name" name="full_name" icon={User} placeholder="e.g. John Doe" value={formData.full_name} onChange={handleChange} required isHighlighted={highlightedFields.has('full_name')} />
-        <InputField label="Phone Number" name="phone" icon={Phone} type="tel" placeholder="+91 98765 43210" value={formData.phone} onChange={handleChange} required half maxLength={20} isHighlighted={highlightedFields.has('phone')} />
+        <PhoneInput
+          label="Phone Number"
+          name="phone"
+          icon={Phone}
+          placeholder="312 1234567"
+          value={formData.phone}
+          countryCode={formData.phoneCountryCode}
+          onCountryChange={(code) => setFormData(prev => ({ ...prev, phoneCountryCode: code }))}
+          onChange={handleChange}
+          required
+          half
+          isHighlighted={highlightedFields.has('phone')}
+        />
         <InputField label="Email Address" name="email" icon={Mail} type="email" placeholder="john@farm.com" value={formData.email} onChange={handleChange} required half isHighlighted={highlightedFields.has('email')} />
         <InputField label="Create Password" name="password" icon={Lock} type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required isHighlighted={highlightedFields.has('password')} />
       </div>
@@ -775,104 +905,104 @@ export default function FarmerRegistration() {
       <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
         <HeaderNavbar onBack={handleBackToSignup} />
 
-      <main className="pt-16 h-screen flex overflow-hidden">
-        {/* Fixed Sidebar for Desktop */}
-        <StepSidebar currentStep={currentStep > 2 ? 2 : currentStep} />
+        <main className="pt-16 h-screen flex overflow-hidden">
+          {/* Fixed Sidebar for Desktop */}
+          <StepSidebar currentStep={currentStep > 2 ? 2 : currentStep} />
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 flex flex-col relative overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
-            <div className="max-w-2xl mx-auto w-full">
-              {/* Mobile Step Indicator */}
-              {currentStep < 3 && (
-                <div className="lg:hidden mb-6 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-900">{STEPS[currentStep - 1].title}</h2>
-                    <p className="text-xs text-slate-500">{STEPS[currentStep - 1].subtitle}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm border border-emerald-100">
-                    {currentStep}/2
-                  </div>
-                </div>
-              )}
-
-              {/* Desktop Header */}
-              {currentStep < 3 && (
-                <div className="hidden lg:block mb-8">
-                  <h1 className="text-2xl font-bold text-slate-900">{STEPS[currentStep - 1].title}</h1>
-                  <p className="text-sm text-slate-500 mt-1">Please provide your details below.</p>
-                </div>
-              )}
-
-              {/* Validation Errors */}
-              <AnimatePresence>
-                {validationErrors.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mt-0.5">
-                        <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-sm font-semibold text-red-900 mb-1">Please complete the following:</h3>
-                        <ul className="space-y-1">
-                          {validationErrors.map((error, index) => (
-                            <li key={index} className="text-sm text-red-700 flex items-center gap-2">
-                              <span className="w-1 h-1 rounded-full bg-red-400"></span>
-                              {error}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+          {/* Scrollable Content Area */}
+          <div className="flex-1 flex flex-col relative overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
+              <div className="max-w-2xl mx-auto w-full">
+                {/* Mobile Step Indicator */}
+                {currentStep < 3 && (
+                  <div className="lg:hidden mb-6 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">{STEPS[currentStep - 1].title}</h2>
+                      <p className="text-xs text-slate-500">{STEPS[currentStep - 1].subtitle}</p>
                     </div>
-                  </motion.div>
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm border border-emerald-100">
+                      {currentStep}/2
+                    </div>
+                  </div>
                 )}
-              </AnimatePresence>
 
-              {/* Content */}
-              <AnimatePresence mode="wait">
-                {currentStep === 1 && renderAccountStep()}
-                {currentStep === 2 && renderReviewStep()}
-                {currentStep === 3 && renderSuccess()}
-              </AnimatePresence>
-            </div>
-          </div>
+                {/* Desktop Header */}
+                {currentStep < 3 && (
+                  <div className="hidden lg:block mb-8">
+                    <h1 className="text-2xl font-bold text-slate-900">{STEPS[currentStep - 1].title}</h1>
+                    <p className="text-sm text-slate-500 mt-1">Please provide your details below.</p>
+                  </div>
+                )}
 
-          {/* Footer Actions */}
-          {currentStep < 3 && (
-            <div className="p-4 sm:p-6 border-t border-slate-200 bg-white/80 backdrop-blur-sm z-10">
-              <div className="max-w-2xl mx-auto w-full flex justify-between items-center">
-                <Button
-                  variant="ghost"
-                  onClick={prevStep}
-                  disabled={currentStep === 1}
-                  className={currentStep === 1 ? 'opacity-0 pointer-events-none' : ''}
-                >
-                  Back
-                </Button>
+                {/* Validation Errors */}
+                <AnimatePresence>
+                  {validationErrors.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mt-0.5">
+                          <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-sm font-semibold text-red-900 mb-1">Please complete the following:</h3>
+                          <ul className="space-y-1">
+                            {validationErrors.map((error, index) => (
+                              <li key={index} className="text-sm text-red-700 flex items-center gap-2">
+                                <span className="w-1 h-1 rounded-full bg-red-400"></span>
+                                {error}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                <Button
-                  variant="emerald"
-                  rounded="full"
-                  onClick={currentStep === 2 ? handleSubmit : nextStep}
-                  className="px-8"
-                  icon={<ArrowRight size={18} />}
-                  iconPosition="right"
-                >
-                  {currentStep === 2 ? 'Submit Application' : 'Continue'}
-                </Button>
+                {/* Content */}
+                <AnimatePresence mode="wait">
+                  {currentStep === 1 && renderAccountStep()}
+                  {currentStep === 2 && renderReviewStep()}
+                  {currentStep === 3 && renderSuccess()}
+                </AnimatePresence>
               </div>
             </div>
-          )}
-        </div>
-      </main>
-    </div>
+
+            {/* Footer Actions */}
+            {currentStep < 3 && (
+              <div className="p-4 sm:p-6 border-t border-slate-200 bg-white/80 backdrop-blur-sm z-10">
+                <div className="max-w-2xl mx-auto w-full flex justify-between items-center">
+                  <Button
+                    variant="ghost"
+                    onClick={prevStep}
+                    disabled={currentStep === 1}
+                    className={currentStep === 1 ? 'opacity-0 pointer-events-none' : ''}
+                  >
+                    Back
+                  </Button>
+
+                  <Button
+                    variant="emerald"
+                    rounded="full"
+                    onClick={currentStep === 2 ? handleSubmit : nextStep}
+                    className="px-8"
+                    icon={<ArrowRight size={18} />}
+                    iconPosition="right"
+                  >
+                    {currentStep === 2 ? 'Submit Application' : 'Continue'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </>
   );
 }

@@ -86,7 +86,7 @@ export function FarmerSidebar({ isCollapsed, setIsCollapsed }: FarmerSidebarProp
                             const isActive = pathname === item.href;
 
                             return (
-                                <Link key={item.href} href={item.href}>
+                                <Link key={item.href} href={item.href} className="block">
                                     <motion.div
                                         whileHover={{ x: 4 }}
                                         whileTap={{ scale: 0.98 }}
@@ -154,25 +154,20 @@ export function FarmerSidebar({ isCollapsed, setIsCollapsed }: FarmerSidebarProp
                         )}
                     </motion.button>
                 </div>
-            </motion.aside>
 
-            {/* Toggle Button */}
-            <motion.button
-                initial={false}
-                animate={{
-                    left: isCollapsed ? '64px' : '264px',
-                }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="fixed top-8 w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-110 transition-all cursor-pointer z-[60] border-2 border-white"
-            >
-                <motion.div
-                    animate={{ rotate: isCollapsed ? 0 : 180 }}
-                    transition={{ duration: 0.3 }}
+                {/* Toggle Button */}
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className="absolute top-8 -right-4 w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-110 transition-all cursor-pointer z-[60] border-2 border-white"
                 >
-                    <ChevronRight size={16} className="text-white" strokeWidth={3} />
-                </motion.div>
-            </motion.button>
+                    <motion.div
+                        animate={{ rotate: isCollapsed ? 0 : 180 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <ChevronRight size={16} className="text-white" strokeWidth={3} />
+                    </motion.div>
+                </button>
+            </motion.aside>
         </>
     );
 }
