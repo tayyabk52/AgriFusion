@@ -6,7 +6,25 @@ import { Sidebar } from './Sidebar';
 import { DashboardHeader } from './DashboardHeader';
 import { motion } from 'framer-motion';
 
-function DashboardContent({ children }: { children: ReactNode }) {
+interface Profile {
+    id: string;
+    full_name: string;
+    email: string;
+    avatar_url?: string;
+}
+
+interface Notification {
+    id: string;
+    is_read: boolean;
+}
+
+interface DashboardLayoutProps {
+    children: ReactNode;
+    profile?: Profile | null;
+    notifications?: Notification[];
+}
+
+function DashboardContent({ children, profile, notifications }: DashboardLayoutProps) {
     const { isCollapsed } = useSidebar();
 
     return (
@@ -22,7 +40,11 @@ function DashboardContent({ children }: { children: ReactNode }) {
                 style={{ minHeight: '100vh' }}
             >
                 <div className="max-w-7xl mx-auto w-full">
-                    <DashboardHeader />
+                    {profile && notifications ? (
+                        <DashboardHeader profile={profile} notifications={notifications} />
+                    ) : (
+                        <DashboardHeader profile={{ id: '', full_name: 'Loading...', email: '' }} notifications={[]} />
+                    )}
                     {children}
                 </div>
             </motion.main>
@@ -30,10 +52,10 @@ function DashboardContent({ children }: { children: ReactNode }) {
     );
 }
 
-export function DashboardLayout({ children }: { children: ReactNode }) {
+export function DashboardLayout({ children, profile, notifications }: DashboardLayoutProps) {
     return (
         <SidebarProvider>
-            <DashboardContent>{children}</DashboardContent>
+            <DashboardContent profile={profile} notifications={notifications}>{children}</DashboardContent>
         </SidebarProvider>
     );
 }

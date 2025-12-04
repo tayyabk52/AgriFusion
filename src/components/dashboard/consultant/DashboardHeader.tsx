@@ -4,9 +4,32 @@ import React, { useState } from 'react';
 import { Search, Bell, SlidersHorizontal, ChevronDown, LogOut, User, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const DashboardHeader = () => {
+interface Profile {
+    id: string;
+    full_name: string;
+    email: string;
+    avatar_url?: string;
+}
+
+interface Notification {
+    id: string;
+    is_read: boolean;
+}
+
+interface DashboardHeaderProps {
+    profile?: Profile;
+    notifications?: Notification[];
+}
+
+const defaultProfile: Profile = {
+    id: '',
+    full_name: 'Loading...',
+    email: '',
+};
+
+export const DashboardHeader = ({ profile = defaultProfile, notifications = [] }: DashboardHeaderProps) => {
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-    const [notifications, setNotifications] = useState(3);
+    const unreadCount = notifications.filter(n => !n.is_read).length;
 
     return (
         <header className="bg-transparent mb-8">
@@ -44,13 +67,13 @@ export const DashboardHeader = () => {
                         className="relative p-3 text-slate-500 hover:text-emerald-600 bg-white hover:bg-emerald-50 rounded-xl transition-all border border-slate-200 hover:border-emerald-200 shadow-sm hover:shadow-md"
                     >
                         <Bell className="h-5 w-5" strokeWidth={2} />
-                        {notifications > 0 && (
+                        {unreadCount > 0 && (
                             <motion.span
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 className="absolute -top-1 -right-1 flex items-center justify-center h-5 w-5 text-[10px] font-bold rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white ring-2 ring-white shadow-lg"
                             >
-                                {notifications}
+                                {unreadCount}
                             </motion.span>
                         )}
                     </motion.button>
@@ -64,14 +87,14 @@ export const DashboardHeader = () => {
                             className="flex items-center gap-3 pl-4 pr-3 py-2 bg-white border border-slate-200 rounded-xl hover:border-emerald-200 transition-all shadow-sm hover:shadow-md"
                         >
                             <div className="text-right hidden sm:block">
-                                <p className="text-sm font-bold text-slate-900">Ahmed Raza</p>
+                                <p className="text-sm font-bold text-slate-900">{profile.full_name}</p>
                                 <p className="text-xs text-emerald-600 font-semibold">
                                     Verified Consultant
                                 </p>
                             </div>
                             <div className="relative">
                                 <img
-                                    src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80"
+                                    src={profile.avatar_url || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80"}
                                     alt="Profile"
                                     className="h-10 w-10 rounded-full object-cover border-2 border-emerald-100 shadow-sm"
                                 />
@@ -96,8 +119,8 @@ export const DashboardHeader = () => {
                                     className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-2xl shadow-slate-900/10 overflow-hidden z-50"
                                 >
                                     <div className="p-3 border-b border-slate-100 bg-gradient-to-br from-emerald-50 to-teal-50">
-                                        <p className="text-sm font-bold text-slate-900">Ahmed Raza</p>
-                                        <p className="text-xs text-slate-600">ahmed@agrifusion.com</p>
+                                        <p className="text-sm font-bold text-slate-900">{profile.full_name}</p>
+                                        <p className="text-xs text-slate-600">{profile.email}</p>
                                     </div>
                                     <div className="p-2">
                                         <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-all group">

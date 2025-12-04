@@ -4,65 +4,77 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Users, HelpCircle, Hourglass, Recycle, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 
-const KPI_DATA = [
-    {
-        id: 'active-farmers',
-        label: 'Active Farmers',
-        value: '42',
-        change: '+12%',
-        trend: 'up',
-        icon: Users,
-        gradient: 'from-emerald-500 to-teal-600',
-        bgGradient: 'from-emerald-50 to-teal-50',
-        iconBg: 'bg-emerald-100',
-    },
-    {
-        id: 'open-queries',
-        label: 'Open Queries',
-        value: '8',
-        change: '+2',
-        trend: 'up',
-        icon: HelpCircle,
-        gradient: 'from-amber-500 to-orange-600',
-        bgGradient: 'from-amber-50 to-orange-50',
-        iconBg: 'bg-amber-100',
-    },
-    {
-        id: 'expert-pending',
-        label: 'Expert Pending',
-        value: '3',
-        change: '-1',
-        trend: 'down',
-        icon: Hourglass,
-        gradient: 'from-blue-500 to-indigo-600',
-        bgGradient: 'from-blue-50 to-indigo-50',
-        iconBg: 'bg-blue-100',
-    },
-    {
-        id: 'active-waste',
-        label: 'Active Waste',
-        value: '12',
-        change: '+5',
-        trend: 'up',
-        icon: Recycle,
-        gradient: 'from-teal-500 to-cyan-600',
-        bgGradient: 'from-teal-50 to-cyan-50',
-        iconBg: 'bg-teal-100',
-    },
-    {
-        id: 'new-offers',
-        label: 'New Offers',
-        value: '5',
-        change: '+3',
-        trend: 'up',
-        icon: Wallet,
-        gradient: 'from-violet-500 to-purple-600',
-        bgGradient: 'from-violet-50 to-purple-50',
-        iconBg: 'bg-violet-100',
-    },
-];
+interface KPIData {
+    activeFarmers: number;
+    openQueries: number;
+    expertPending: number;
+    activeWaste: number;
+    newOffers: number;
+}
 
-export const KPIGrid = () => {
+interface KPIGridProps {
+    kpis: KPIData;
+}
+
+export const KPIGrid = ({ kpis }: KPIGridProps) => {
+    const KPI_DATA = [
+        {
+            id: 'active-farmers',
+            label: 'Active Farmers',
+            value: kpis.activeFarmers.toString(),
+            change: '+0',
+            trend: 'up',
+            icon: Users,
+            gradient: 'from-emerald-500 to-teal-600',
+            bgGradient: 'from-emerald-50 to-teal-50',
+            iconBg: 'bg-emerald-100',
+        },
+        {
+            id: 'open-queries',
+            label: 'Open Queries',
+            value: kpis.openQueries.toString(),
+            change: '0',
+            trend: 'up',
+            icon: HelpCircle,
+            gradient: 'from-amber-500 to-orange-600',
+            bgGradient: 'from-amber-50 to-orange-50',
+            iconBg: 'bg-amber-100',
+        },
+        {
+            id: 'expert-pending',
+            label: 'Expert Pending',
+            value: kpis.expertPending.toString(),
+            change: '0',
+            trend: 'up',
+            icon: Hourglass,
+            gradient: 'from-blue-500 to-indigo-600',
+            bgGradient: 'from-blue-50 to-indigo-50',
+            iconBg: 'bg-blue-100',
+        },
+        {
+            id: 'active-waste',
+            label: 'Active Waste',
+            value: kpis.activeWaste.toString(),
+            change: '0',
+            trend: 'up',
+            icon: Recycle,
+            gradient: 'from-teal-500 to-cyan-600',
+            bgGradient: 'from-teal-50 to-cyan-50',
+            iconBg: 'bg-teal-100',
+        },
+        {
+            id: 'new-offers',
+            label: 'New Offers',
+            value: kpis.newOffers.toString(),
+            change: '0',
+            trend: 'up',
+            icon: Wallet,
+            gradient: 'from-violet-500 to-purple-600',
+            bgGradient: 'from-violet-50 to-purple-50',
+            iconBg: 'bg-violet-100',
+        },
+    ];
+
     return (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             {KPI_DATA.map((kpi, index) => (

@@ -1,13 +1,67 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/consultant/DashboardLayout';
 import { KPIGrid } from '@/components/dashboard/consultant/KPIGrid';
 import { QuickActionsGrid } from '@/components/dashboard/consultant/QuickActionsGrid';
 import { motion } from 'framer-motion';
 import { Calendar, TrendingUp, MessageSquare, Sparkles, BarChart3 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { formatDistanceToNow } from 'date-fns';
+
+// TypeScript interfaces
+interface Profile {
+    id: string;
+    auth_user_id: string;
+    role: string;
+    full_name: string;
+    email: string;
+    phone?: string;
+    avatar_url?: string;
+    status: string;
+}
+
+interface ConsultantData {
+    id: string;
+    profile_id: string;
+    qualification: string;
+    specialization_areas: string[];
+    experience_years: number;
+}
+
+interface Notification {
+    id: string;
+    recipient_id: string;
+    type: string;
+    title: string;
+    message: string;
+    is_read: boolean;
+    created_at: string;
+}
+
+interface KPIData {
+    activeFarmers: number;
+    openQueries: number;
+    expertPending: number;
+    activeWaste: number;
+    newOffers: number;
+}
 
 export default function ConsultantDashboard() {
+    const router = useRouter();
+    const [loading, setLoading] = useState(true);
+    const [profile, setProfile] = useState<Profile | null>(null);
+    const [consultantData, setConsultantData] = useState<ConsultantData | null>(null);
+    const [kpis, setKpis] = useState<KPIData>({
+        activeFarmers: 0,
+        openQueries: 0,
+        expertPending: 0,
+        activeWaste: 0,
+        newOffers: 0,
+    });
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [error, setError] = useState<string | null>(null);
     const currentDate = new Date();
     const formattedDate = currentDate.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
 
@@ -18,8 +72,137 @@ export default function ConsultantDashboard() {
         return 'Good Evening';
     };
 
+    // Data fetching
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
+
+    const fetchDashboardData = async () => {
+        try {
+            // Check authentication
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+            if (authError || !user) {
+                router.push('/signin');
+                return;
+            }
+
+            // Fetch profile
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('auth_user_id', user.id)
+                .single();
+
+            if (profileError) {
+                setError('Failed to load profile');
+                setLoading(false);
+                return;
+            }
+
+            // Verify consultant role
+            if (profileData.role !== 'consultant') {
+                router.push('/dashboard/farmer');
+                return;
+            }
+
+            setProfile(profileData);
+
+            // Fetch consultant data
+            const { data: consultantData, error: consultantError } = await supabase
+                .from('consultants')
+                .select('*')
+                .eq('profile_id', profileData.id)
+                .single();
+
+            if (!consultantError && consultantData) {
+                setConsultantData(consultantData);
+            }
+
+            // Fetch KPIs and notifications in parallel
+            await Promise.all([
+                fetchActiveFarmersCount(profileData.id),
+                fetchNotifications(profileData.id)
+            ]);
+
+        } catch (err) {
+            console.error('Error fetching dashboard data:', err);
+            setError('An unexpected error occurred');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchActiveFarmersCount = async (profileId: string) => {
+        try {
+            const { count, error } = await supabase
+                .from('farmers')
+                .select('*', { count: 'exact', head: true })
+                .eq('consultant_id', profileId);
+
+            if (!error) {
+                setKpis(prev => ({
+                    ...prev,
+                    activeFarmers: count || 0
+                }));
+            }
+        } catch (err) {
+            console.error('Error fetching farmer count:', err);
+        }
+    };
+
+    const fetchNotifications = async (profileId: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('recipient_id', profileId)
+                .order('created_at', { ascending: false })
+                .limit(3);
+
+            if (!error && data) {
+                setNotifications(data);
+            }
+        } catch (err) {
+            console.error('Error fetching notifications:', err);
+        }
+    };
+
+    // Loading state
+    if (loading) {
+        return (
+            <DashboardLayout profile={null} notifications={[]}>
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+                        <p className="text-slate-600">Loading dashboard...</p>
+                    </div>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <DashboardLayout profile={null} notifications={[]}>
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <p className="text-red-600 mb-4">{error}</p>
+                        <button
+                            onClick={() => fetchDashboardData()}
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
     return (
-        <DashboardLayout>
+        <DashboardLayout profile={profile} notifications={notifications}>
             {/* Welcome & Quick Actions Row */}
             <div className="flex flex-col xl:flex-row gap-8 mb-10">
                 {/* Welcome Text */}
@@ -36,7 +219,7 @@ export default function ConsultantDashboard() {
                         </p>
                     </div>
                     <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
-                        {getGreeting()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Ahmed</span>
+                        {getGreeting()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">{profile?.full_name?.split(' ')[0] || 'there'}</span>
                     </h1>
                     <p className="text-slate-600 text-base leading-relaxed">
                         Here's what's happening in your network today. Keep up the great work!
@@ -51,7 +234,7 @@ export default function ConsultantDashboard() {
 
             {/* KPI Grid */}
             <section className="mb-10">
-                <KPIGrid />
+                <KPIGrid kpis={kpis} />
             </section>
 
             {/* Enhanced Content Panels */}
@@ -78,27 +261,33 @@ export default function ConsultantDashboard() {
                     </div>
                     <div className="p-6">
                         <div className="space-y-4">
-                            {[
-                                { user: 'Mohammad Ali', action: 'submitted a new query', time: '2 hours ago', color: 'amber' },
-                                { user: 'Fatima Khan', action: 'updated waste record', time: '3 hours ago', color: 'teal' },
-                                { user: 'Hassan Raza', action: 'requested consultation', time: '5 hours ago', color: 'blue' },
-                            ].map((activity, index) => (
-                                <motion.div
-                                    key={index}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.3 + index * 0.1 }}
-                                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all group cursor-pointer"
-                                >
-                                    <div className={`w-2 h-2 rounded-full bg-${activity.color}-500 mt-2`} />
-                                    <div className="flex-1">
-                                        <p className="text-sm text-slate-900">
-                                            <span className="font-semibold">{activity.user}</span> {activity.action}
-                                        </p>
-                                        <p className="text-xs text-slate-500">{activity.time}</p>
-                                    </div>
-                                </motion.div>
-                            ))}
+                            {notifications.length > 0 ? (
+                                notifications.map((notification, index) => (
+                                    <motion.div
+                                        key={notification.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.3 + index * 0.1 }}
+                                        className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all group cursor-pointer"
+                                    >
+                                        <div className={`w-2 h-2 rounded-full ${notification.is_read ? 'bg-slate-300' : 'bg-emerald-500'} mt-2`} />
+                                        <div className="flex-1">
+                                            <p className="text-sm text-slate-900">
+                                                <span className="font-semibold">{notification.title}</span>
+                                            </p>
+                                            <p className="text-xs text-slate-600">{notification.message}</p>
+                                            <p className="text-xs text-slate-500 mt-1">
+                                                {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-sm text-slate-500">No recent activity</p>
+                                    <p className="text-xs text-slate-400 mt-1">Notifications will appear here</p>
+                                </div>
+                            )}
                         </div>
                         <motion.button
                             whileHover={{ scale: 1.02 }}
@@ -107,64 +296,6 @@ export default function ConsultantDashboard() {
                         >
                             View All Activity
                         </motion.button>
-                    </div>
-                </motion.div>
-
-                {/* Quick Stats Panel */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="bg-white rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all overflow-hidden"
-                >
-                    <div className="p-6 border-b border-slate-100 bg-gradient-to-br from-blue-50 to-indigo-50">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-                                    <BarChart3 className="text-white" size={20} strokeWidth={2.5} />
-                                </div>
-                                <h3 className="text-lg font-bold text-slate-900">Performance Overview</h3>
-                            </div>
-                            <TrendingUp className="text-emerald-600" size={20} strokeWidth={2.5} />
-                        </div>
-                    </div>
-                    <div className="p-6">
-                        <div className="space-y-4">
-                            {[
-                                { label: 'Response Rate', value: '95%', progress: 95, color: 'emerald' },
-                                { label: 'Avg. Response Time', value: '2.4 hrs', progress: 85, color: 'blue' },
-                                { label: 'Farmer Satisfaction', value: '4.8/5', progress: 96, color: 'amber' },
-                            ].map((stat, index) => (
-                                <motion.div
-                                    key={index}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.4 + index * 0.1 }}
-                                >
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm font-semibold text-slate-700">{stat.label}</span>
-                                        <span className="text-sm font-bold text-slate-900">{stat.value}</span>
-                                    </div>
-                                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${stat.progress}%` }}
-                                            transition={{ delay: 0.5 + index * 0.1, duration: 0.8, ease: 'easeOut' }}
-                                            className={`h-full bg-gradient-to-r from-${stat.color}-500 to-${stat.color}-600 rounded-full`}
-                                        />
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
-                        <div className="mt-6 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-100">
-                            <div className="flex items-center gap-3">
-                                <Sparkles className="text-emerald-600" size={20} strokeWidth={2.5} />
-                                <div>
-                                    <p className="text-sm font-bold text-slate-900">Excellent Work!</p>
-                                    <p className="text-xs text-slate-600">You're in the top 10% of consultants</p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </motion.div>
             </div>
