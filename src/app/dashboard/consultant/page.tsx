@@ -6,9 +6,10 @@ import { DashboardLayout } from '@/components/dashboard/consultant/DashboardLayo
 import { KPIGrid } from '@/components/dashboard/consultant/KPIGrid';
 import { QuickActionsGrid } from '@/components/dashboard/consultant/QuickActionsGrid';
 import { motion } from 'framer-motion';
-import { Calendar, TrendingUp, MessageSquare, Sparkles, BarChart3 } from 'lucide-react';
+import { Calendar, TrendingUp, MessageSquare, Sparkles, BarChart3, Hourglass } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { formatDistanceToNow } from 'date-fns';
+import { useConsultantApproval } from '@/contexts/ConsultantApprovalContext';
 
 // TypeScript interfaces
 interface Profile {
@@ -50,6 +51,7 @@ interface KPIData {
 
 export default function ConsultantDashboard() {
     const router = useRouter();
+    const { isApproved, isPending } = useConsultantApproval();
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<Profile | null>(null);
     const [consultantData, setConsultantData] = useState<ConsultantData | null>(null);
@@ -135,15 +137,60 @@ export default function ConsultantDashboard() {
 
     const fetchActiveFarmersCount = async (profileId: string) => {
         try {
-            const { count, error } = await supabase
+            // Fetch all farmers with their profile status and farm details
+            const { data: farmers, error } = await supabase
                 .from('farmers')
-                .select('*', { count: 'exact', head: true })
+                .select(`
+                    id,
+                    created_at,
+                    farm_name,
+                    land_size_acres,
+                    current_crops,
+                    profiles:profile_id (
+                        status
+                    )
+                `)
                 .eq('consultant_id', profileId);
 
-            if (!error) {
+            // Fetch count of unassigned farmers (available to be linked)
+            const { count: pendingCount, error: pendingError } = await supabase
+                .from('farmers')
+                .select('id', { count: 'exact', head: true })
+                .is('consultant_id', null);
+
+            if (pendingError) {
+                console.error('Error fetching pending count:', pendingError);
+            }
+
+            if (!error && farmers) {
+                const total = farmers.length;
+                // Fix TypeScript issue: profiles is an array in the response
+                const active = farmers.filter(f => {
+                    const profile = Array.isArray(f.profiles) ? f.profiles[0] : f.profiles;
+                    return profile?.status === 'active';
+                }).length;
+
+                // Count farmers created in the last 30 days
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const newFarmers = farmers.filter(f => new Date(f.created_at) >= thirtyDaysAgo).length;
+
+                // Calculate completion rate (farmers with complete farm details)
+                const completeFarmers = farmers.filter(f =>
+                    f.farm_name &&
+                    f.land_size_acres &&
+                    f.current_crops &&
+                    f.current_crops.length > 0
+                ).length;
+                const completionRate = total > 0 ? Math.round((completeFarmers / total) * 100) : 0;
+
                 setKpis(prev => ({
                     ...prev,
-                    activeFarmers: count || 0
+                    activeFarmers: active,
+                    openQueries: total, // Total farmers
+                    expertPending: newFarmers, // New farmers this month
+                    activeWaste: pendingCount || 0, // Unassigned farmers available to link
+                    newOffers: completionRate, // Completion rate
                 }));
             }
         } catch (err) {
@@ -227,8 +274,27 @@ export default function ConsultantDashboard() {
                 </motion.div>
 
                 {/* Quick Actions */}
-                <div className="xl:w-2/3">
+                <div className="xl:w-2/3 relative">
                     <QuickActionsGrid />
+                    {!isApproved && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute inset-0 bg-white/60 backdrop-blur-[2px] rounded-2xl flex items-center justify-center z-10"
+                        >
+                            <div className="bg-white border-2 border-amber-200 rounded-xl p-4 shadow-lg max-w-xs text-center">
+                                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <Hourglass className="text-amber-600" size={24} />
+                                </div>
+                                <p className="text-sm font-semibold text-slate-900 mb-1">
+                                    Quick Actions Disabled
+                                </p>
+                                <p className="text-xs text-slate-600">
+                                    These features will be available once your account is approved
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
                 </div>
             </div>
 

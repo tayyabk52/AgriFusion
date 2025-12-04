@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Users, HelpCircle, Hourglass, Recycle, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { Users, HelpCircle, Hourglass, Recycle, Wallet, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 
 interface KPIData {
     activeFarmers: number;
@@ -30,45 +30,45 @@ export const KPIGrid = ({ kpis }: KPIGridProps) => {
             iconBg: 'bg-emerald-100',
         },
         {
-            id: 'open-queries',
-            label: 'Open Queries',
+            id: 'total-farmers',
+            label: 'Total Farmers',
             value: kpis.openQueries.toString(),
             change: '0',
             trend: 'up',
-            icon: HelpCircle,
+            icon: Users,
             gradient: 'from-amber-500 to-orange-600',
             bgGradient: 'from-amber-50 to-orange-50',
             iconBg: 'bg-amber-100',
         },
         {
-            id: 'expert-pending',
-            label: 'Expert Pending',
+            id: 'new-farmers',
+            label: 'New This Month',
             value: kpis.expertPending.toString(),
             change: '0',
             trend: 'up',
-            icon: Hourglass,
+            icon: TrendingUp,
             gradient: 'from-blue-500 to-indigo-600',
             bgGradient: 'from-blue-50 to-indigo-50',
             iconBg: 'bg-blue-100',
         },
         {
-            id: 'active-waste',
-            label: 'Active Waste',
+            id: 'pending-approval',
+            label: 'Available to Link',
             value: kpis.activeWaste.toString(),
             change: '0',
             trend: 'up',
-            icon: Recycle,
+            icon: Hourglass,
             gradient: 'from-teal-500 to-cyan-600',
             bgGradient: 'from-teal-50 to-cyan-50',
             iconBg: 'bg-teal-100',
         },
         {
-            id: 'new-offers',
-            label: 'New Offers',
-            value: kpis.newOffers.toString(),
+            id: 'completion-rate',
+            label: 'Completion Rate',
+            value: kpis.newOffers.toString() + '%',
             change: '0',
             trend: 'up',
-            icon: Wallet,
+            icon: BarChart3,
             gradient: 'from-violet-500 to-purple-600',
             bgGradient: 'from-violet-50 to-purple-50',
             iconBg: 'bg-violet-100',

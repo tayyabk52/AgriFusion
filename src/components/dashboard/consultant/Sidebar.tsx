@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard,
     Users,
+    UserPlus,
     MessageSquare,
     Recycle,
     GraduationCap,
@@ -21,6 +22,7 @@ import { useSidebar } from '@/contexts/SidebarContext';
 const NAV_ITEMS = [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard/consultant' },
     { label: 'Farmers', icon: Users, href: '/dashboard/consultant/farmers' },
+    { label: 'Onboard Farmer', icon: UserPlus, href: '/dashboard/consultant/farmer-network' },
     { label: 'Queries', icon: MessageSquare, href: '/dashboard/consultant/queries', badge: 8 },
     { label: 'Waste Records', icon: Recycle, href: '/dashboard/consultant/waste' },
     { label: 'Experts', icon: GraduationCap, href: '/dashboard/consultant/experts' },
@@ -98,33 +100,10 @@ export const Sidebar = () => {
                 </Link>
             </div>
 
-            {/* New Registration Button */}
-            <div className="px-4 mb-6 mt-4">
-                <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-emerald-200 hover:shadow-xl hover:shadow-emerald-300 ${isCollapsed ? 'p-3' : 'p-3.5'}`}
-                >
-                    <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" strokeWidth={2.5} />
-                    <AnimatePresence>
-                        {!isCollapsed && (
-                            <motion.span
-                                initial={{ opacity: 0, width: 0 }}
-                                animate={{ opacity: 1, width: 'auto' }}
-                                exit={{ opacity: 0, width: 0 }}
-                                className="font-bold text-sm overflow-hidden whitespace-nowrap"
-                            >
-                                New Registration
-                            </motion.span>
-                        )}
-                    </AnimatePresence>
-                </motion.button>
-            </div>
-
             {/* Navigation */}
             <nav className="flex-1 px-4 space-y-2 overflow-y-auto pb-6">
                 {NAV_ITEMS.map((item, index) => {
-                    const isActive = pathname === item.href;
+                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                     return (
                         <motion.div
                             key={item.label}

@@ -4,6 +4,7 @@ import React, { ReactNode } from 'react';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { Sidebar } from './Sidebar';
 import { DashboardHeader } from './DashboardHeader';
+import { ApprovalBanner } from './ApprovalBanner';
 import { motion } from 'framer-motion';
 
 interface Profile {
@@ -45,6 +46,7 @@ function DashboardContent({ children, profile, notifications }: DashboardLayoutP
                     ) : (
                         <DashboardHeader profile={{ id: '', full_name: 'Loading...', email: '' }} notifications={[]} />
                     )}
+                    <ApprovalBanner />
                     {children}
                 </div>
             </motion.main>
