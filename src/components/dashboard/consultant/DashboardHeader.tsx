@@ -35,12 +35,12 @@ export const DashboardHeader = ({ profile = defaultProfile, notifications = [] }
     const isVerified = profile.full_name !== 'Loading...';
 
     return (
-        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 mb-8 transition-all duration-300 -mr-4 sm:-mr-6 md:-mr-8 pr-4 sm:pr-6 md:pr-8 pl-4 sm:pl-6 md:pl-8">
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 transition-all duration-300 -mr-4 sm:-mr-6 md:-mr-8 pr-4 sm:pr-6 md:pr-8 pl-4 sm:pl-6 md:pl-8">
             <div className="max-w-7xl mx-auto h-20 flex items-center justify-between">
 
                 {/* Left: Welcome Message */}
                 <div className="flex flex-col justify-center">
-                    <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <h1 className="text-xl font-bold text-transparent sm:text-slate-900 flex items-center gap-2">
                         Welcome back, {profile.full_name.split(' ')[0]}
                         <span className="animate-wave inline-block origin-[70%_70%]">👋</span>
                     </h1>
@@ -50,7 +50,7 @@ export const DashboardHeader = ({ profile = defaultProfile, notifications = [] }
                 </div>
 
                 {/* Right Section */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 pr-5">
                     {/* Notifications */}
                     <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -79,9 +79,9 @@ export const DashboardHeader = ({ profile = defaultProfile, notifications = [] }
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                            className={`flex items-center gap-3 pl-1 pr-2 py-1 rounded-full transition-all border ${isProfileMenuOpen
-                                ? 'bg-white border-slate-200 shadow-sm ring-1 ring-slate-900/5'
-                                : 'hover:bg-slate-50/80 border-transparent hover:border-slate-200/60'
+                            className={`flex items-center gap-3 pl-1 pr-2 py-1 rounded-full transition-all ${isProfileMenuOpen
+                                ? 'p-2'
+                                : 'p-2'
                                 }`}
                         >
                             <div className="text-right hidden md:block mr-1">

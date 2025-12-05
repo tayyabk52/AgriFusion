@@ -29,7 +29,7 @@ function DashboardContent({ children, profile, notifications }: DashboardLayoutP
     const { isCollapsed } = useSidebar();
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex">
+        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex relative w-full">
             <Sidebar />
             <motion.main
                 initial={false}
@@ -37,10 +37,10 @@ function DashboardContent({ children, profile, notifications }: DashboardLayoutP
                     marginLeft: isCollapsed ? '80px' : '280px',
                 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="flex-1 px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 w-full overflow-x-hidden"
+                className="flex-1 w-full overflow-x-hidden"
                 style={{ minHeight: '100vh' }}
             >
-                <div className="max-w-7xl mx-auto w-full">
+                <div className="w-full">
                     {profile && notifications ? (
                         <DashboardHeader profile={profile} notifications={notifications} />
                     ) : (

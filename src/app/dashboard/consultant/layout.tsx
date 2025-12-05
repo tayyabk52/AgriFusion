@@ -1,18 +1,20 @@
-'use client';
+"use client";
 
-import { SidebarProvider } from '@/contexts/SidebarContext';
-import { ConsultantApprovalProvider } from '@/contexts/ConsultantApprovalContext';
+import { SidebarProvider } from "@/contexts/SidebarContext";
+import { ConsultantApprovalProvider } from "@/contexts/ConsultantApprovalContext";
+import { Sidebar } from "@/components/dashboard/consultant/Sidebar";
 
 export default function ConsultantLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }) {
-    return (
-        <SidebarProvider>
-            <ConsultantApprovalProvider>
-                {children}
-            </ConsultantApprovalProvider>
-        </SidebarProvider>
-    );
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex overflow-x-hidden">
+        <Sidebar />
+        <ConsultantApprovalProvider>{children}</ConsultantApprovalProvider>
+      </div>
+    </SidebarProvider>
+  );
 }

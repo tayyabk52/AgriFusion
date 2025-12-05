@@ -107,7 +107,7 @@ export const LinkExistingFarmerForm: React.FC<LinkExistingFarmerFormProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-3 md:p-5 bg-white">
       {/* Compact Header */}
       <div className="flex items-center justify-between">
         <div>

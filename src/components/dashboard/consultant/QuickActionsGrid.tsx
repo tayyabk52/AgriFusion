@@ -44,7 +44,7 @@ const QUICK_ACTIONS = [
 
 export const QuickActionsGrid = () => {
     return (
-        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+        <div className="flex gap-3 overflow-x-scroll pb-2 no-scrollbar">
             {QUICK_ACTIONS.map((action, index) => (
                 <motion.button
                     key={action.id}

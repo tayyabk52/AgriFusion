@@ -242,7 +242,7 @@ export const CreateFarmerForm: React.FC<CreateFarmerFormProps> = ({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5  p-3 md:p-5 bg-white">
       <div>
         <h3 className="text-lg font-bold text-slate-900">Create New Farmer Account</h3>
         <p className="text-xs text-slate-500 mt-0.5">Create a complete farmer account with farm details</p>
