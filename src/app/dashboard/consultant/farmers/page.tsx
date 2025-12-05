@@ -12,11 +12,19 @@ import { EditFarmerModal } from '@/components/dashboard/consultant/EditFarmerMod
 import { FarmerActionsMenu } from '@/components/dashboard/consultant/FarmerActionsMenu';
 import { ConfirmationModal } from '@/components/dashboard/consultant/ConfirmationModal';
 
+interface Profile {
+    id: string;
+    full_name: string;
+    email: string;
+    avatar_url?: string;
+}
+
 export default function FarmersPage() {
     const router = useRouter();
     const { isApproved } = useConsultantApproval();
 
     const [loading, setLoading] = useState(true);
+    const [profile, setProfile] = useState<Profile | null>(null);
     const [farmers, setFarmers] = useState<FarmerWithProfile[]>([]);
     const [filteredFarmers, setFilteredFarmers] = useState<FarmerWithProfile[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -86,28 +94,29 @@ export default function FarmersPage() {
             }
 
             // Fetch consultant profile
-            const { data: profile, error: profileError } = await supabase
+            const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('auth_user_id', user.id)
                 .single();
 
-            if (profileError || !profile) {
+            if (profileError || !profileData) {
                 console.error('Error fetching profile:', profileError);
                 setLoading(false);
                 return;
             }
 
             // Verify role is consultant
-            if (profile.role !== 'consultant') {
+            if (profileData.role !== 'consultant') {
                 router.push('/dashboard/farmer');
                 return;
             }
 
-            setConsultantProfileId(profile.id);
+            setProfile(profileData);
+            setConsultantProfileId(profileData.id);
 
             // Fetch farmers linked to this consultant
-            await fetchFarmers(profile.id);
+            await fetchFarmers(profileData.id);
         } catch (error) {
             console.error('Error in checkAuthAndFetchData:', error);
             setLoading(false);
@@ -245,7 +254,7 @@ export default function FarmersPage() {
 
     if (loading) {
         return (
-            <DashboardLayout>
+            <DashboardLayout profile={null} notifications={[]}>
                 <div className="flex items-center justify-center min-h-[60vh]">
                     <div className="text-center">
                         <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
@@ -257,7 +266,7 @@ export default function FarmersPage() {
     }
 
     return (
-        <DashboardLayout>
+        <DashboardLayout profile={profile} notifications={[]}>
 
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
@@ -296,7 +305,7 @@ export default function FarmersPage() {
             </div>
 
             {/* Farmers List */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-hidden min-h-[320px]">
                 {/* Table Header */}
                 <div className="p-6 border-b border-slate-100">
                     <div className="flex items-center justify-between mb-4">
@@ -349,7 +358,7 @@ export default function FarmersPage() {
                 </div>
 
                 {/* Table */}
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-visible">
                     {filteredFarmers.length === 0 ? (
                         <div className="text-center py-12">
                             <Users size={48} className="mx-auto text-slate-300 mb-4" />
@@ -452,16 +461,14 @@ export default function FarmersPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span
-                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                                                        isActive
-                                                            ? 'bg-emerald-50 text-emerald-700'
-                                                            : 'bg-slate-100 text-slate-600'
-                                                    }`}
+                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${isActive
+                                                        ? 'bg-emerald-50 text-emerald-700'
+                                                        : 'bg-slate-100 text-slate-600'
+                                                        }`}
                                                 >
                                                     <span
-                                                        className={`w-1.5 h-1.5 rounded-full mr-2 ${
-                                                            isActive ? 'bg-emerald-500' : 'bg-slate-400'
-                                                        }`}
+                                                        className={`w-1.5 h-1.5 rounded-full mr-2 ${isActive ? 'bg-emerald-500' : 'bg-slate-400'
+                                                            }`}
                                                     />
                                                     {profile?.status || 'pending'}
                                                 </span>
@@ -491,16 +498,14 @@ export default function FarmersPage() {
                         initial={{ opacity: 0, y: 50, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                        className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border ${
-                            message.type === 'success'
-                                ? 'bg-white border-emerald-100 text-slate-900'
-                                : 'bg-white border-red-100 text-slate-900'
-                        }`}
+                        className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border ${message.type === 'success'
+                            ? 'bg-white border-emerald-100 text-slate-900'
+                            : 'bg-white border-red-100 text-slate-900'
+                            }`}
                     >
                         <div
-                            className={`w-2 h-2 rounded-full ${
-                                message.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'
-                            }`}
+                            className={`w-2 h-2 rounded-full ${message.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'
+                                }`}
                         />
                         <p className="text-sm font-medium">{message.text}</p>
                     </motion.div>

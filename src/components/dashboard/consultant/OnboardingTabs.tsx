@@ -1,49 +1,55 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Link2, UserPlus } from 'lucide-react';
 
-export const OnboardingTabs = () => {
-  const pathname = usePathname();
-  const isLinkActive = pathname.includes('/link');
-  const isCreateActive = pathname.includes('/create');
+interface OnboardingTabsProps {
+  activeTab: 'link' | 'create';
+  onTabChange: (tab: 'link' | 'create') => void;
+}
+
+export const OnboardingTabs = ({ activeTab, onTabChange }: OnboardingTabsProps) => {
+  const isLinkActive = activeTab === 'link';
+  const isCreateActive = activeTab === 'create';
 
   return (
-    <div className="border-b border-slate-200 mb-8">
+    <div className="border-b border-slate-200 mb-6">
       <div className="flex gap-1">
-        <Link href="/dashboard/consultant/farmer-network/link">
+        <button
+          onClick={() => onTabChange('link')}
+          className="focus:outline-none"
+        >
           <motion.div
             whileHover={{ y: -2 }}
-            className={`px-6 py-4 rounded-t-xl transition-all cursor-pointer ${
-              isLinkActive
-                ? 'bg-white border-t-2 border-x-2 border-emerald-600 text-emerald-700 font-semibold -mb-[1px]'
+            className={`px-6 py-3 rounded-t-xl transition-all cursor-pointer ${isLinkActive
+                ? 'bg-white border-t-2 border-x border-emerald-600 text-emerald-700 font-semibold -mb-[1px]'
                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-2">
               <Link2 size={18} strokeWidth={2.5} />
-              <span>Link Existing Farmer</span>
+              <span className="text-sm">Link Existing Farmer</span>
             </div>
           </motion.div>
-        </Link>
+        </button>
 
-        <Link href="/dashboard/consultant/farmer-network/create">
+        <button
+          onClick={() => onTabChange('create')}
+          className="focus:outline-none"
+        >
           <motion.div
             whileHover={{ y: -2 }}
-            className={`px-6 py-4 rounded-t-xl transition-all cursor-pointer ${
-              isCreateActive
-                ? 'bg-white border-t-2 border-x-2 border-emerald-600 text-emerald-700 font-semibold -mb-[1px]'
+            className={`px-6 py-3 rounded-t-xl transition-all cursor-pointer ${isCreateActive
+                ? 'bg-white border-t-2 border-x border-emerald-600 text-emerald-700 font-semibold -mb-[1px]'
                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-2">
               <UserPlus size={18} strokeWidth={2.5} />
-              <span>Create New Account</span>
+              <span className="text-sm">Create New Account</span>
             </div>
           </motion.div>
-        </Link>
+        </button>
       </div>
     </div>
   );

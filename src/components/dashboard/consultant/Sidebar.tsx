@@ -50,7 +50,7 @@ export const Sidebar = () => {
                     left: isCollapsed ? '64px' : '264px',
                 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="fixed top-8 w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full shadow-lg shadow-emerald-200 flex items-center justify-center text-white hover:shadow-xl hover:shadow-emerald-300 border-2 border-white z-[60]"
+                className="fixed top-8 w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full shadow-lg shadow-emerald-200 flex items-center justify-center text-white hover:shadow-xl hover:shadow-emerald-300 border-2 border-white z-[70]"
             >
                 <motion.div
                     animate={{ rotate: isCollapsed ? 0 : 180 }}
@@ -103,7 +103,10 @@ export const Sidebar = () => {
             {/* Navigation */}
             <nav className="flex-1 px-4 space-y-2 overflow-y-auto pb-6">
                 {NAV_ITEMS.map((item, index) => {
-                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    // Exact match for Dashboard, startsWith for others
+                    const isActive = item.href === '/dashboard/consultant'
+                        ? pathname === item.href
+                        : pathname === item.href || pathname.startsWith(`${item.href}/`);
                     return (
                         <motion.div
                             key={item.label}
