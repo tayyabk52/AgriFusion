@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Users,
@@ -27,7 +27,9 @@ interface KPIGridProps {
 }
 
 export const KPIGrid = ({ kpis }: KPIGridProps) => {
-  const KPI_DATA = [
+  const { isCollapsed } = useSidebar();
+
+  const KPI_DATA = useMemo(() => [
     {
       id: "active-farmers",
       label: "Active Farmers",
@@ -83,14 +85,12 @@ export const KPIGrid = ({ kpis }: KPIGridProps) => {
       bgGradient: "from-violet-50 to-purple-50",
       iconBg: "bg-violet-100",
     },
-  ];
+  ], [kpis]);
 
-  const { isCollapsed } = useSidebar();
   return (
     <div
-      className={`grid grid-cols-1 md:grid-cols-2 ${
-        isCollapsed ? "lg:grid-cols-5" : "lg:grid-cols-3"
-      } gap-4`}
+      className={`grid grid-cols-2 ${isCollapsed ? "sm:grid-cols-5" : "sm:grid-cols-3 lg:grid-cols-5"
+        } gap-2 sm:gap-3`}
     >
       {KPI_DATA.map((kpi, index) => (
         <motion.div
@@ -98,21 +98,21 @@ export const KPIGrid = ({ kpis }: KPIGridProps) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1, duration: 0.5 }}
-          className="bg-white rounded-2xl w-screen md:w-auto p-5 border border-slate-100 shadow-lg hover:shadow-2xl transition-all duration-300 relative overflow-hidden group cursor-pointer"
+          className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-100 shadow-md sm:shadow-lg hover:shadow-2xl transition-all duration-300 relative overflow-hidden group"
         >
           {/* Background Gradient */}
           <div
-            className={`absolute inset-0 bg-linear-to-br ${kpi.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+            className={`absolute inset-0 bg-gradient-to-br ${kpi.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
           />
 
           {/* Icon */}
-          <div className="relative z-10 mb-4">
+          <div className="relative z-10 mb-3 sm:mb-4">
             <div
-              className={`inline-flex p-3 rounded-xl ${kpi.iconBg} group-hover:bg-linear-to-br group-hover:${kpi.gradient} transition-all duration-300`}
+              className={`inline-flex p-2.5 sm:p-3 rounded-xl ${kpi.iconBg} group-hover:bg-gradient-to-br group-hover:${kpi.gradient} transition-all duration-300`}
             >
               <kpi.icon
-                size={22}
-                className="text-slate-600 group-hover:text-white transition-colors duration-300"
+                size={20}
+                className="sm:w-[22px] sm:h-[22px] text-slate-600 group-hover:text-white transition-colors duration-300"
                 strokeWidth={2.5}
               />
             </div>
@@ -120,27 +120,26 @@ export const KPIGrid = ({ kpis }: KPIGridProps) => {
 
           {/* Content */}
           <div className="relative z-10">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 sm:mb-2">
               {kpi.label}
             </p>
             <div className="flex items-end justify-between">
-              <h3 className="text-3xl font-bold text-slate-900 group-hover:text-slate-900 transition-colors">
+              <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 group-hover:text-slate-900 transition-colors">
                 {kpi.value}
               </h3>
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: index * 0.1 + 0.3, type: "spring" }}
-                className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
-                  kpi.trend === "up"
+                className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold ${kpi.trend === "up"
                     ? "bg-emerald-100 text-emerald-700"
                     : "bg-red-100 text-red-700"
-                }`}
+                  }`}
               >
                 {kpi.trend === "up" ? (
-                  <TrendingUp size={12} strokeWidth={3} />
+                  <TrendingUp size={10} className="sm:w-3 sm:h-3" strokeWidth={3} />
                 ) : (
-                  <TrendingDown size={12} strokeWidth={3} />
+                  <TrendingDown size={10} className="sm:w-3 sm:h-3" strokeWidth={3} />
                 )}
                 <span>{kpi.change}</span>
               </motion.div>
@@ -148,9 +147,9 @@ export const KPIGrid = ({ kpis }: KPIGridProps) => {
           </div>
 
           {/* Decorative Elements */}
-          <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 opacity-30 group-hover:opacity-50 group-hover:scale-125 transition-all duration-500" />
+          <div className="absolute bottom-0 right-0 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 opacity-30 group-hover:opacity-50 group-hover:scale-125 transition-all duration-500" />
           <div
-            className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${kpi.gradient} opacity-0 group-hover:opacity-10 rounded-bl-full transition-opacity duration-300`}
+            className={`absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br ${kpi.gradient} opacity-0 group-hover:opacity-10 rounded-bl-full transition-opacity duration-300`}
           />
         </motion.div>
       ))}

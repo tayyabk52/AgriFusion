@@ -2,6 +2,7 @@
 
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ConsultantApprovalProvider } from "@/contexts/ConsultantApprovalContext";
+import { ProfileProvider } from "@/contexts/ProfileContext";
 import { Sidebar } from "@/components/dashboard/consultant/Sidebar";
 
 export default function ConsultantLayout({
@@ -10,11 +11,13 @@ export default function ConsultantLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex overflow-x-hidden">
-        <Sidebar />
-        <ConsultantApprovalProvider>{children}</ConsultantApprovalProvider>
-      </div>
-    </SidebarProvider>
+    <ProfileProvider requiredRole="consultant">
+      <SidebarProvider>
+        <div className="min-h-screen bg-slate-50 font-sans text-slate-900" style={{ overflowX: 'clip' }}>
+          <Sidebar />
+          <ConsultantApprovalProvider>{children}</ConsultantApprovalProvider>
+        </div>
+      </SidebarProvider>
+    </ProfileProvider>
   );
 }

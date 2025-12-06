@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "@/components/dashboard/consultant/DashboardLayout";
 import {
   Users,
   Search,
@@ -17,25 +16,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { FarmerWithProfile, FarmerStats } from "@/types/farmer";
 import { useConsultantApproval } from "@/contexts/ConsultantApprovalContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { EditFarmerModal } from "@/components/dashboard/consultant/EditFarmerModal";
 import { FarmerActionsMenu } from "@/components/dashboard/consultant/FarmerActionsMenu";
 import { ConfirmationModal } from "@/components/dashboard/consultant/ConfirmationModal";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { DashboardHeader } from "@/components/dashboard/consultant/DashboardHeader";
 
-interface Profile {
-  id: string;
-  full_name: string;
-  email: string;
-  avatar_url?: string;
-}
-
 export default function FarmersPage() {
   const router = useRouter();
   const { isApproved } = useConsultantApproval();
+  const { profile, isLoading: profileLoading } = useProfile();
 
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [farmers, setFarmers] = useState<FarmerWithProfile[]>([]);
   const [filteredFarmers, setFilteredFarmers] = useState<FarmerWithProfile[]>(
     []
@@ -65,9 +58,13 @@ export default function FarmersPage() {
     useState<FarmerWithProfile | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
+  // Fetch farmers when profile is available
   useEffect(() => {
-    checkAuthAndFetchData();
-  }, []);
+    if (profile?.id) {
+      setConsultantProfileId(profile.id);
+      fetchFarmers(profile.id);
+    }
+  }, [profile?.id]);
 
   // Auto-dismiss message after 4 seconds
   useEffect(() => {
@@ -108,49 +105,6 @@ export default function FarmersPage() {
 
     setFilteredFarmers(filtered);
   }, [searchQuery, farmers]);
-
-  const checkAuthAndFetchData = async () => {
-    try {
-      // Check authentication
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !user) {
-        router.push("/signin");
-        return;
-      }
-
-      // Fetch consultant profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("auth_user_id", user.id)
-        .single();
-
-      if (profileError || !profileData) {
-        console.error("Error fetching profile:", profileError);
-        setLoading(false);
-        return;
-      }
-
-      // Verify role is consultant
-      if (profileData.role !== "consultant") {
-        router.push("/dashboard/farmer");
-        return;
-      }
-
-      setProfile(profileData);
-      setConsultantProfileId(profileData.id);
-
-      // Fetch farmers linked to this consultant
-      await fetchFarmers(profileData.id);
-    } catch (error) {
-      console.error("Error in checkAuthAndFetchData:", error);
-      setLoading(false);
-    }
-  };
 
   const fetchFarmers = async (consultantId: string) => {
     try {
@@ -298,16 +252,27 @@ export default function FarmersPage() {
   };
 
   const { isCollapsed, isTemporary } = useSidebar();
-  if (loading) {
+
+  // Loading state - checking both profile and farmers loading
+  if (loading || profileLoading) {
     return (
-      <DashboardLayout profile={null} notifications={[]}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
-            <p className="text-slate-600">Loading farmers data...</p>
+      <main
+        className="flex-1 transition-all duration-300"
+        style={{
+          marginLeft:
+            isCollapsed && !isTemporary ? "80px" : isTemporary ? "0" : "280px",
+        }}
+      >
+        <div className="w-full">
+          <DashboardHeader />
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
+              <p className="text-slate-600">Loading farmers data...</p>
+            </div>
           </div>
         </div>
-      </DashboardLayout>
+      </main>
     );
   }
 
@@ -322,7 +287,7 @@ export default function FarmersPage() {
       <div className="w-full">
         <DashboardHeader />
         {/* Page Header */}
-        <div className="flex flex-col gap-4 md:gap-6 lg:gap-8 w-full p-5 md:p-7 lg:p-9 max-w-dvw">
+        <div className="flex flex-col gap-4 md:gap-6 lg:gap-8 w-full p-5 md:p-7 lg:p-9">
           <div className="flex flex-col md:flex-row md:items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
@@ -390,6 +355,7 @@ export default function FarmersPage() {
                   {!showSearchInput && (
                     <button
                       onClick={() => setShowSearchInput(true)}
+                      aria-label="Open search"
                       className="p-2 hover:bg-slate-50 rounded-lg text-slate-600 transition-colors mt-4"
                     >
                       <Search size={20} />
@@ -424,6 +390,7 @@ export default function FarmersPage() {
                         setShowSearchInput(false);
                         setSearchQuery("");
                       }}
+                      aria-label="Close search"
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
                     >
                       <X size={18} className="text-slate-400" />
@@ -434,7 +401,7 @@ export default function FarmersPage() {
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto overflow-y-visible">
+            <div className="overflow-x-auto">
               {filteredFarmers.length === 0 ? (
                 <div className="text-center py-12">
                   <Users size={48} className="mx-auto text-slate-300 mb-4" />
@@ -450,129 +417,129 @@ export default function FarmersPage() {
                   </p>
                 </div>
               ) : (
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-100">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                        Farmer
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                        Location
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                        Crops
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 max-h-[145px] overflow-scroll">
-                    {filteredFarmers.map((farmer, index) => {
-                      const profile = farmer.profiles;
-                      const location =
-                        [farmer.district, farmer.state]
-                          .filter(Boolean)
-                          .join(", ") || "Not specified";
-                      const crops =
-                        farmer.current_crops?.join(", ") || "Not specified";
-                      const isActive = profile?.status === "active";
+                <div className="max-h-[500px] overflow-y-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                          Farmer
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                          Location
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                          Crops
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                          Contact
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredFarmers.map((farmer, index) => {
+                        const profile = farmer.profiles;
+                        const location =
+                          [farmer.district, farmer.state]
+                            .filter(Boolean)
+                            .join(", ") || "Not specified";
+                        const crops =
+                          farmer.current_crops?.join(", ") || "Not specified";
+                        const isActive = profile?.status === "active";
 
-                      return (
-                        <motion.tr
-                          key={farmer.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: Math.min(index * 0.05, 0.5) }}
-                          className="hover:bg-slate-50 transition-colors"
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              {profile?.avatar_url ? (
-                                <img
-                                  src={profile.avatar_url}
-                                  alt={profile.full_name}
-                                  className="w-10 h-10 aspect-square rounded-full object-cover border-2 border-white shadow-sm"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 aspect-square rounded-full bg-linear-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold">
-                                  {profile?.full_name
-                                    ?.charAt(0)
-                                    .toUpperCase() || "F"}
+                        return (
+                          <motion.tr
+                            key={farmer.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                            className="hover:bg-slate-50 transition-colors"
+                          >
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                {profile?.avatar_url ? (
+                                  <img
+                                    src={profile.avatar_url}
+                                    alt={profile.full_name}
+                                    className="w-10 h-10 aspect-square rounded-full object-cover border-2 border-white shadow-sm"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 aspect-square rounded-full bg-linear-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold">
+                                    {profile?.full_name
+                                      ?.charAt(0)
+                                      .toUpperCase() || "F"}
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="font-semibold text-slate-900 whitespace-nowrap">
+                                    {profile?.full_name || "Unknown"}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {farmer.farm_name || "No farm name"}
+                                  </p>
                                 </div>
-                              )}
-                              <div>
-                                <p className="font-semibold text-slate-900 whitespace-nowrap">
-                                  {profile?.full_name || "Unknown"}
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                  {farmer.farm_name || "No farm name"}
-                                </p>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2 text-sm text-slate-600 whitespace-nowrap">
-                              <MapPin size={14} className="text-slate-400" />
-                              {location}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm text-slate-600 whitespace-nowrap">
-                              {crops}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="space-y-1">
-                              {profile?.phone && (
-                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                  <Phone size={14} className="text-slate-400" />
-                                  {profile.phone}
-                                </div>
-                              )}
-                              {profile?.email && (
-                                <p className="text-xs text-slate-500">
-                                  {profile.email}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                                isActive
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2 text-sm text-slate-600 whitespace-nowrap">
+                                <MapPin size={14} className="text-slate-400" />
+                                {location}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="text-sm text-slate-600 whitespace-nowrap">
+                                {crops}
+                              </p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="space-y-1">
+                                {profile?.phone && (
+                                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                                    <Phone size={14} className="text-slate-400" />
+                                    {profile.phone}
+                                  </div>
+                                )}
+                                {profile?.email && (
+                                  <p className="text-xs text-slate-500">
+                                    {profile.email}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${isActive
                                   ? "bg-emerald-50 text-emerald-700"
                                   : "bg-slate-100 text-slate-600"
-                              }`}
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full mr-2 ${
-                                  isActive ? "bg-emerald-500" : "bg-slate-400"
-                                }`}
+                                  }`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full mr-2 ${isActive ? "bg-emerald-500" : "bg-slate-400"
+                                    }`}
+                                />
+                                {profile?.status || "pending"}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <FarmerActionsMenu
+                                farmer={farmer}
+                                onEdit={handleEditFarmer}
+                                onView={handleViewFarmer}
+                                onRemove={handleRemoveFarmer}
+                                disabled={!isApproved}
                               />
-                              {profile?.status || "pending"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <FarmerActionsMenu
-                              farmer={farmer}
-                              onEdit={handleEditFarmer}
-                              onView={handleViewFarmer}
-                              onRemove={handleRemoveFarmer}
-                              disabled={!isApproved}
-                            />
-                          </td>
-                        </motion.tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
@@ -584,16 +551,14 @@ export default function FarmersPage() {
                 initial={{ opacity: 0, y: 50, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border ${
-                  message.type === "success"
-                    ? "bg-white border-emerald-100 text-slate-900"
-                    : "bg-white border-red-100 text-slate-900"
-                }`}
+                className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border ${message.type === "success"
+                  ? "bg-white border-emerald-100 text-slate-900"
+                  : "bg-white border-red-100 text-slate-900"
+                  }`}
               >
                 <div
-                  className={`w-2 h-2 rounded-full ${
-                    message.type === "success" ? "bg-emerald-500" : "bg-red-500"
-                  }`}
+                  className={`w-2 h-2 rounded-full ${message.type === "success" ? "bg-emerald-500" : "bg-red-500"
+                    }`}
                 />
                 <p className="text-sm font-medium">{message.text}</p>
               </motion.div>
@@ -619,9 +584,8 @@ export default function FarmersPage() {
             onClose={handleRemoveCancel}
             onConfirm={handleRemoveConfirm}
             title="Remove Farmer from Network?"
-            message={`Are you sure you want to remove ${
-              farmerToRemove?.profiles?.full_name || "this farmer"
-            } from your network? This will unlink the farmer but will not delete their account. They will return to the unassigned farmers pool.`}
+            message={`Are you sure you want to remove ${farmerToRemove?.profiles?.full_name || "this farmer"
+              } from your network? This will unlink the farmer but will not delete their account. They will return to the unassigned farmers pool.`}
             confirmText="Yes, Remove Farmer"
             cancelText="Cancel"
             variant="danger"

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Sidebar } from "@/components/dashboard/consultant/Sidebar";
 import { DashboardHeader } from "@/components/dashboard/consultant/DashboardHeader";
 import {
   Recycle,

@@ -2,13 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "@/components/dashboard/consultant/DashboardLayout";
 import { OnboardingPageHeader } from "@/components/dashboard/consultant/OnboardingPageHeader";
 import { OnboardingTabs } from "@/components/dashboard/consultant/OnboardingTabs";
 import { LinkExistingFarmerForm } from "@/components/dashboard/consultant/LinkExistingFarmerForm";
 import { CreateFarmerForm } from "@/components/dashboard/consultant/CreateFarmerForm";
 import { useConsultantApproval } from "@/contexts/ConsultantApprovalContext";
-import { supabase } from "@/lib/supabaseClient";
+import { useProfile } from "@/contexts/ProfileContext";
 import { Loader2, Hourglass, CheckCircle2, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/consultant/DashboardHeader";
@@ -17,8 +16,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 export default function FarmerNetworkPage() {
   const router = useRouter();
   const { isApproved } = useConsultantApproval();
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const { profile, isLoading: profileLoading } = useProfile();
   const [activeTab, setActiveTab] = useState<"link" | "create">("link");
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -26,50 +24,11 @@ export default function FarmerNetworkPage() {
   } | null>(null);
 
   useEffect(() => {
-    checkAuthAndFetchProfile();
-  }, []);
-
-  useEffect(() => {
     if (message) {
       const timer = setTimeout(() => setMessage(null), 4000);
       return () => clearTimeout(timer);
     }
   }, [message]);
-
-  const checkAuthAndFetchProfile = async () => {
-    try {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-      if (authError || !user) {
-        router.push("/signin");
-        return;
-      }
-
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("auth_user_id", user.id)
-        .single();
-
-      if (profileError || !profileData) {
-        setLoading(false);
-        return;
-      }
-
-      if (profileData.role !== "consultant") {
-        router.push("/dashboard/farmer");
-        return;
-      }
-
-      setProfile(profileData);
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSuccess = (action: "link" | "create") => {
     setMessage({
@@ -81,20 +40,31 @@ export default function FarmerNetworkPage() {
     });
   };
 
-  if (loading) {
+  const { isCollapsed, isTemporary } = useSidebar();
+
+  // Loading state - checking profile loading
+  if (profileLoading) {
     return (
-      <DashboardLayout profile={null} notifications={[]}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mx-auto mb-3" />
-            <p className="text-slate-600 text-sm">Loading...</p>
+      <main
+        className="flex-1 transition-all duration-300"
+        style={{
+          marginLeft:
+            isCollapsed && !isTemporary ? "80px" : isTemporary ? "0" : "280px",
+        }}
+      >
+        <div className="w-full">
+          <DashboardHeader />
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mx-auto mb-3" />
+              <p className="text-slate-600 text-sm">Loading...</p>
+            </div>
           </div>
         </div>
-      </DashboardLayout>
+      </main>
     );
   }
 
-  const { isCollapsed, isTemporary } = useSidebar();
   return (
     <main
       className="flex-1 transition-all duration-300"

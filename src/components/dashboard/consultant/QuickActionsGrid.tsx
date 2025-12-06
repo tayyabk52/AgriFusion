@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Sprout, Recycle, MessageSquarePlus, UserPlus, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const QUICK_ACTIONS = [
     {
@@ -43,8 +44,30 @@ const QUICK_ACTIONS = [
 ];
 
 export const QuickActionsGrid = () => {
+    const router = useRouter();
+
+    const handleActionClick = (actionId: string) => {
+        switch (actionId) {
+            case 'register':
+                router.push('/dashboard/consultant/farmer-network');
+                break;
+            case 'waste':
+                router.push('/dashboard/consultant/waste');
+                break;
+            case 'query':
+                router.push('/dashboard/consultant/queries');
+                break;
+            case 'crop-rec':
+                // Future feature - could navigate to crop recommendations page
+                console.log('Crop recommendations feature coming soon');
+                break;
+            default:
+                break;
+        }
+    };
+
     return (
-        <div className="flex gap-3 overflow-x-scroll pb-2 no-scrollbar">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             {QUICK_ACTIONS.map((action, index) => (
                 <motion.button
                     key={action.id}
@@ -52,11 +75,12 @@ export const QuickActionsGrid = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.1, type: 'spring' }}
                     whileTap={{ scale: 0.97 }}
-                    className={`flex-1 min-w-[140px] p-5 rounded-2xl shadow-lg transition-all duration-300 text-left group relative overflow-hidden ${
-                        action.isPrimary
-                            ? `bg-gradient-to-br ${action.gradient} shadow-emerald-200 hover:shadow-2xl hover:shadow-emerald-300`
-                            : `bg-white border border-slate-100 hover:shadow-xl hover:border-slate-200`
-                    }`}
+                    onClick={() => handleActionClick(action.id)}
+                    aria-label={`${action.label} ${action.sublabel}`}
+                    className={`p-4 sm:p-5 rounded-2xl shadow-md transition-all duration-300 text-left group relative overflow-hidden ${action.isPrimary
+                            ? `bg-gradient-to-br ${action.gradient} shadow-emerald-200/50 hover:shadow-xl hover:shadow-emerald-300/50`
+                            : `bg-white border border-slate-100 hover:shadow-lg hover:border-slate-200`
+                        }`}
                 >
                     {/* Background for non-primary */}
                     {!action.isPrimary && (
@@ -66,13 +90,12 @@ export const QuickActionsGrid = () => {
                     {/* Content */}
                     <div className="relative z-10">
                         {/* Icon */}
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all duration-300 ${
-                            action.isPrimary
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-2 sm:mb-3 transition-all duration-300 ${action.isPrimary
                                 ? 'bg-white/20 text-white backdrop-blur-sm group-hover:bg-white/30'
                                 : `bg-white/60 backdrop-blur-sm group-hover:bg-white group-hover:shadow-md`
-                        }`}>
+                            }`}>
                             <action.icon
-                                size={22}
+                                size={20}
                                 strokeWidth={2.5}
                                 className={action.isPrimary ? '' : `text-slate-700 bg-gradient-to-br ${action.gradient} bg-clip-text`}
                             />
@@ -80,25 +103,22 @@ export const QuickActionsGrid = () => {
 
                         {/* Text */}
                         <div className="mb-1">
-                            <p className={`text-sm font-bold leading-tight mb-0.5 ${
-                                action.isPrimary ? 'text-white' : 'text-slate-900'
-                            }`}>
+                            <p className={`text-xs sm:text-sm font-bold leading-tight mb-0.5 ${action.isPrimary ? 'text-white' : 'text-slate-900'
+                                }`}>
                                 {action.label}
                             </p>
-                            <p className={`text-xs font-semibold leading-tight ${
-                                action.isPrimary ? 'text-white/90' : 'text-slate-600'
-                            }`}>
+                            <p className={`text-[10px] sm:text-xs font-semibold leading-tight ${action.isPrimary ? 'text-white/90' : 'text-slate-600'
+                                }`}>
                                 {action.sublabel}
                             </p>
                         </div>
 
-                        {/* Arrow Indicator */}
+                        {/* Arrow Indicator - hidden on mobile */}
                         <motion.div
                             initial={{ x: -5, opacity: 0 }}
                             whileHover={{ x: 0, opacity: 1 }}
-                            className={`absolute bottom-4 right-4 ${
-                                action.isPrimary ? 'text-white/70' : 'text-slate-400'
-                            }`}
+                            className={`hidden sm:block absolute bottom-4 right-4 ${action.isPrimary ? 'text-white/70' : 'text-slate-400'
+                                }`}
                         >
                             <ArrowRight size={16} strokeWidth={2.5} />
                         </motion.div>
@@ -107,12 +127,12 @@ export const QuickActionsGrid = () => {
                     {/* Decorative Elements */}
                     {action.isPrimary && (
                         <>
-                            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-                            <div className="absolute -top-6 -left-6 w-20 h-20 bg-white/5 rounded-full blur-xl" />
+                            <div className="absolute right-0 bottom-0 w-20 h-20 sm:w-24 sm:h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500" />
+                            <div className="absolute top-0 left-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/5 rounded-full blur-xl" />
                         </>
                     )}
                     {!action.isPrimary && (
-                        <div className={`absolute -bottom-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br ${action.gradient} opacity-20 group-hover:opacity-30 group-hover:scale-110 transition-all duration-500`} />
+                        <div className={`absolute bottom-0 right-0 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br ${action.gradient} opacity-20 group-hover:opacity-30 group-hover:scale-110 transition-all duration-500`} />
                     )}
                 </motion.button>
             ))}

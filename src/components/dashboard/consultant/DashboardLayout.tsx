@@ -7,25 +7,11 @@ import { DashboardHeader } from './DashboardHeader';
 import { ApprovalBanner } from './ApprovalBanner';
 import { motion } from 'framer-motion';
 
-interface Profile {
-    id: string;
-    full_name: string;
-    email: string;
-    avatar_url?: string;
-}
-
-interface Notification {
-    id: string;
-    is_read: boolean;
-}
-
 interface DashboardLayoutProps {
     children: ReactNode;
-    profile?: Profile | null;
-    notifications?: Notification[];
 }
 
-function DashboardContent({ children, profile, notifications }: DashboardLayoutProps) {
+function DashboardContent({ children }: DashboardLayoutProps) {
     const { isCollapsed } = useSidebar();
 
     return (
@@ -41,11 +27,7 @@ function DashboardContent({ children, profile, notifications }: DashboardLayoutP
                 style={{ minHeight: '100vh' }}
             >
                 <div className="w-full">
-                    {profile && notifications ? (
-                        <DashboardHeader profile={profile} notifications={notifications} />
-                    ) : (
-                        <DashboardHeader profile={{ id: '', full_name: 'Loading...', email: '' }} notifications={[]} />
-                    )}
+                    <DashboardHeader />
                     <ApprovalBanner />
                     {children}
                 </div>
@@ -54,10 +36,10 @@ function DashboardContent({ children, profile, notifications }: DashboardLayoutP
     );
 }
 
-export function DashboardLayout({ children, profile, notifications }: DashboardLayoutProps) {
+export function DashboardLayout({ children }: DashboardLayoutProps) {
     return (
         <SidebarProvider>
-            <DashboardContent profile={profile} notifications={notifications}>{children}</DashboardContent>
+            <DashboardContent>{children}</DashboardContent>
         </SidebarProvider>
     );
 }

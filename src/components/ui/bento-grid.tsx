@@ -13,7 +13,7 @@ const BentoGrid = ({
     return (
         <div
             className={cn(
-                "grid w-full auto-rows-[22rem] grid-cols-1 md:grid-cols-3 gap-4",
+                "grid w-full auto-rows-[22rem] grid-cols-1 md:grid-cols-3 gap-6",
                 className
             )}
         >
@@ -56,11 +56,12 @@ const BentoCard = ({
                 transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as any }
             }}
             className={cn(
-                "group relative col-span-3 flex flex-col overflow-hidden rounded-[2rem]",
+                "group relative col-span-3 flex flex-col overflow-clip rounded-[2rem]",
                 "bg-white",
                 "border-2 border-slate-200",
                 "shadow-lg hover:shadow-2xl hover:shadow-emerald-500/10",
                 "hover:border-emerald-300",
+                "hover:z-10",
                 "cursor-pointer",
                 className
             )}
@@ -100,7 +101,7 @@ const BentoCard = ({
 
                 {/* Animated border glow */}
                 <motion.div
-                    className="absolute inset-0 rounded-[2rem] opacity-0"
+                    className="absolute inset-0 opacity-0 pointer-events-none"
                     whileHover={{ opacity: 1 }}
                     transition={{ duration: 0.4 }}
                     style={{
@@ -114,7 +115,7 @@ const BentoCard = ({
             </div>
 
             {/* Content Section */}
-            <div className="relative flex flex-col gap-4 p-8 bg-white">
+            <div className="relative flex flex-col gap-4 p-4 bg-white">
                 {/* Icon Badge - glassmorphism with bounce */}
                 <motion.div
                     className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/20 backdrop-blur-md border-2 border-white/30 text-white shadow-xl -mt-14 bg-gradient-to-br from-emerald-500 to-teal-600"

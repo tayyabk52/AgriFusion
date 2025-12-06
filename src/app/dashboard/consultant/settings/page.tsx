@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sidebar } from "@/components/dashboard/consultant/Sidebar";
 import { DashboardHeader } from "@/components/dashboard/consultant/DashboardHeader";
 import { Settings, User, Bell, Lock, Globe, Palette, Save } from "lucide-react";
 import { motion } from "framer-motion";
@@ -273,14 +272,19 @@ export default function SettingsPage() {
 
                 {/* Save Button */}
                 <div className="mt-8 pt-6 border-t border-slate-100">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-emerald-200 hover:shadow-xl transition-all"
-                  >
-                    <Save size={20} strokeWidth={2.5} />
-                    Save Changes
-                  </motion.button>
+                  <div className="flex flex-col gap-2">
+                    <motion.button
+                      disabled
+                      className="px-6 py-3 bg-slate-300 text-slate-500 rounded-xl font-semibold flex items-center gap-2 cursor-not-allowed opacity-60"
+                      title="Settings save functionality coming soon"
+                    >
+                      <Save size={20} strokeWidth={2.5} />
+                      Save Changes (Coming Soon)
+                    </motion.button>
+                    <p className="text-xs text-slate-500 italic">
+                      Note: Settings management functionality will be available in the next update
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { DashboardLayout } from "@/components/dashboard/consultant/DashboardLayout";
 import { KPIGrid } from "@/components/dashboard/consultant/KPIGrid";
 import { QuickActionsGrid } from "@/components/dashboard/consultant/QuickActionsGrid";
 import { motion } from "framer-motion";
@@ -20,39 +18,11 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { formatDistanceToNow } from "date-fns";
 import { useConsultantApproval } from "@/contexts/ConsultantApprovalContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { DashboardHeader } from "@/components/dashboard/consultant/DashboardHeader";
 import { useSidebar } from "@/contexts/SidebarContext";
 
 // TypeScript interfaces
-interface Profile {
-  id: string;
-  auth_user_id: string;
-  role: string;
-  full_name: string;
-  email: string;
-  phone?: string;
-  avatar_url?: string;
-  status: string;
-}
-
-interface ConsultantData {
-  id: string;
-  profile_id: string;
-  qualification: string;
-  specialization_areas: string[];
-  experience_years: number;
-}
-
-interface Notification {
-  id: string;
-  recipient_id: string;
-  type: string;
-  title: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-}
-
 interface KPIData {
   activeFarmers: number;
   openQueries: number;
@@ -62,13 +32,11 @@ interface KPIData {
 }
 
 export default function ConsultantDashboard() {
-  const router = useRouter();
+  // Use ProfileContext instead of fetching data locally
+  const { profile, notifications, isLoading: profileLoading, error: profileError } = useProfile();
   const { isApproved, isPending } = useConsultantApproval();
+
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [consultantData, setConsultantData] = useState<ConsultantData | null>(
-    null
-  );
   const [kpis, setKpis] = useState<KPIData>({
     activeFarmers: 0,
     openQueries: 0,
@@ -76,8 +44,7 @@ export default function ConsultantDashboard() {
     activeWaste: 0,
     newOffers: 0,
   });
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [error, setError] = useState<string | null>(null);
+
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString("en-US", {
     weekday: "short",
@@ -92,64 +59,21 @@ export default function ConsultantDashboard() {
     return "Good Evening";
   };
 
-  // Data fetching
+  // Fetch page-specific data (KPIs) only
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (profile?.id) {
+      fetchKPIsData();
+    }
+  }, [profile?.id]);
 
-  const fetchDashboardData = async () => {
+  const fetchKPIsData = async () => {
+    if (!profile?.id) return;
+
     try {
-      // Check authentication
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError || !user) {
-        router.push("/signin");
-        return;
-      }
-
-      // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("auth_user_id", user.id)
-        .single();
-
-      if (profileError) {
-        setError("Failed to load profile");
-        setLoading(false);
-        return;
-      }
-
-      // Verify consultant role
-      if (profileData.role !== "consultant") {
-        router.push("/dashboard/farmer");
-        return;
-      }
-
-      setProfile(profileData);
-
-      // Fetch consultant data
-      const { data: consultantData, error: consultantError } = await supabase
-        .from("consultants")
-        .select("*")
-        .eq("profile_id", profileData.id)
-        .single();
-
-      if (!consultantError && consultantData) {
-        setConsultantData(consultantData);
-      }
-
-      // Fetch KPIs and notifications in parallel
-      await Promise.all([
-        fetchActiveFarmersCount(profileData.id),
-        fetchNotifications(profileData.id),
-      ]);
+      setLoading(true);
+      await fetchActiveFarmersCount(profile.id);
     } catch (err) {
-      console.error("Error fetching dashboard data:", err);
-      setError("An unexpected error occurred");
+      console.error("Error fetching KPIs:", err);
     } finally {
       setLoading(false);
     }
@@ -226,57 +150,56 @@ export default function ConsultantDashboard() {
     }
   };
 
-  const fetchNotifications = async (profileId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("recipient_id", profileId)
-        .order("created_at", { ascending: false })
-        .limit(3);
-
-      if (!error && data) {
-        setNotifications(data);
-      }
-    } catch (err) {
-      console.error("Error fetching notifications:", err);
-    }
-  };
-
-  // Loading state
-  if (loading) {
-    return (
-      <DashboardLayout profile={null} notifications={[]}>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-            <p className="text-slate-600">Loading dashboard...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <DashboardLayout profile={null} notifications={[]}>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <p className="text-red-600 mb-4">{error}</p>
-            <button
-              onClick={() => fetchDashboardData()}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   const { isCollapsed, isTemporary } = useSidebar();
+
+  // Loading state - checking both profile and KPI loading
+  if (loading || profileLoading) {
+    return (
+      <main
+        className="flex-1 transition-all duration-300"
+        style={{
+          marginLeft:
+            isCollapsed && !isTemporary ? "80px" : isTemporary ? "0" : "280px",
+        }}
+      >
+        <div className="w-full">
+          <DashboardHeader />
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+              <p className="text-slate-600">Loading dashboard...</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Error state - display profile loading errors
+  if (profileError) {
+    return (
+      <main
+        className="flex-1 transition-all duration-300"
+        style={{
+          marginLeft:
+            isCollapsed && !isTemporary ? "80px" : isTemporary ? "0" : "280px",
+        }}
+      >
+        <div className="w-full">
+          <DashboardHeader />
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <p className="text-red-600 mb-4">{profileError}</p>
+              <p className="text-slate-600 text-sm">
+                Please try refreshing the page
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
   return (
     <main
       className="flex-1 transition-all duration-300"
@@ -343,14 +266,13 @@ export default function ConsultantDashboard() {
           </div>
         </div>
         {/* KPI Grid */}
-        <section className=" md:p-7 lg:p-9">
+        <section className="p-4 md:p-7 lg:p-9">
           <KPIGrid kpis={kpis} />
         </section>
         {/* Enhanced Content Panels - Full Width Grid */}
         <div
-          className={`grid grid-cols-1 ${
-            isCollapsed ? "lg:grid-cols-2" : "lg:grid-cols-1"
-          } gap-6 md:p-7 lg:p-9`}
+          className={`grid grid-cols-1 ${isCollapsed ? "lg:grid-cols-2" : "lg:grid-cols-1"
+            } gap-6 md:p-7 lg:p-9`}
         >
           {/* Recent Activity Panel */}
           <motion.div
@@ -359,21 +281,21 @@ export default function ConsultantDashboard() {
             transition={{ delay: 0.2 }}
             className="w-screen md:w-auto bg-white rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all overflow-hidden"
           >
-            <div className="p-6 border-b border-slate-100 bg-gradient-to-br from-emerald-50 to-teal-50">
+            <div className="p-4 sm:p-5 border-b border-slate-100">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
                     <MessageSquare
                       className="text-white"
-                      size={20}
+                      size={18}
                       strokeWidth={2.5}
                     />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900">
                     Recent Activity
                   </h3>
                 </div>
-                <span className="text-xs font-semibold text-emerald-600 bg-white px-3 py-1.5 rounded-full">
+                <span className="text-[10px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
                   Live
                 </span>
               </div>
@@ -390,11 +312,10 @@ export default function ConsultantDashboard() {
                       className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all group cursor-pointer"
                     >
                       <div
-                        className={`w-2 h-2 rounded-full ${
-                          notification.is_read
-                            ? "bg-slate-300"
-                            : "bg-emerald-500"
-                        } mt-2`}
+                        className={`w-2 h-2 rounded-full ${notification.is_read
+                          ? "bg-slate-300"
+                          : "bg-emerald-500"
+                          } mt-2`}
                       />
                       <div className="flex-1">
                         <p className="text-sm text-slate-900">
@@ -447,47 +368,47 @@ export default function ConsultantDashboard() {
             transition={{ delay: 0.3 }}
             className="w-screen md:w-auto bg-white rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all overflow-hidden"
           >
-            <div className="p-6 border-b border-slate-100 bg-gradient-to-br from-blue-50 to-indigo-50">
+            <div className="p-4 sm:p-5 border-b border-slate-100">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
                     <BarChart3
                       className="text-white"
-                      size={20}
+                      size={18}
                       strokeWidth={2.5}
                     />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900">
                     Performance Overview
                   </h3>
                 </div>
-                <span className="text-xs font-semibold text-blue-600 bg-white px-3 py-1.5 rounded-full">
+                <span className="text-[10px] sm:text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
                   This Month
                 </span>
               </div>
             </div>
-            <div className="p-6">
-              <div className="space-y-5">
+            <div className="p-4 sm:p-5">
+              <div className="space-y-2.5 sm:space-y-3">
                 {/* Stat Item 1 */}
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-white rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                      <Users size={20} className="text-emerald-600" />
+                <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all duration-200">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <Users size={18} className="text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">
                         Active Farmers
                       </p>
-                      <p className="text-xs text-slate-500">In your network</p>
+                      <p className="text-[10px] sm:text-xs text-slate-500 leading-tight">In your network</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-slate-900">
+                    <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
                       {kpis.activeFarmers}
                     </p>
-                    <div className="flex items-center gap-1 text-emerald-600">
-                      <ArrowUpRight size={14} />
-                      <span className="text-xs font-semibold">
+                    <div className="flex items-center justify-end gap-0.5 text-emerald-600 mt-0.5">
+                      <ArrowUpRight size={12} />
+                      <span className="text-[10px] sm:text-xs font-semibold">
                         +{kpis.expertPending} new
                       </span>
                     </div>
@@ -495,46 +416,46 @@ export default function ConsultantDashboard() {
                 </div>
 
                 {/* Stat Item 2 */}
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-white rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <TrendingUp size={20} className="text-blue-600" />
+                <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all duration-200">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <TrendingUp size={18} className="text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">
                         Completion Rate
                       </p>
-                      <p className="text-xs text-slate-500">Farm profiles</p>
+                      <p className="text-[10px] sm:text-xs text-slate-500 leading-tight">Farm profiles</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-slate-900">
+                    <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
                       {kpis.newOffers}%
                     </p>
-                    <p className="text-xs text-slate-500">Profile data</p>
+                    <p className="text-[10px] sm:text-xs text-slate-500 leading-tight">Profile data</p>
                   </div>
                 </div>
 
                 {/* Stat Item 3 */}
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-white rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                      <Sparkles size={20} className="text-amber-600" />
+                <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all duration-200">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center">
+                      <Sparkles size={18} className="text-amber-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-xs sm:text-sm font-semibold text-slate-900 leading-tight">
                         Available to Link
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[10px] sm:text-xs text-slate-500 leading-tight">
                         Unassigned farmers
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-slate-900">
+                    <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
                       {kpis.activeWaste}
                     </p>
-                    <p className="text-xs text-slate-500">Waiting</p>
+                    <p className="text-[10px] sm:text-xs text-slate-500 leading-tight">Waiting</p>
                   </div>
                 </div>
               </div>

@@ -36,6 +36,7 @@ export const FarmerActionsMenu: React.FC<FarmerActionsMenuProps> = ({
         onClick={() => onView(farmer)}
         className="p-2 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
         title="View Details"
+        aria-label="View farmer details"
       >
         <Eye size={16} strokeWidth={2} />
       </motion.button>
@@ -46,6 +47,7 @@ export const FarmerActionsMenu: React.FC<FarmerActionsMenuProps> = ({
         onClick={() => onEdit(farmer)}
         className="p-2 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all"
         title="Edit Details"
+        aria-label="Edit farmer details"
       >
         <Edit size={16} strokeWidth={2} />
       </motion.button>
@@ -56,6 +58,7 @@ export const FarmerActionsMenu: React.FC<FarmerActionsMenuProps> = ({
         onClick={() => onRemove(farmer)}
         className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all"
         title="Remove from Network"
+        aria-label="Remove farmer from network"
       >
         <Trash2 size={16} strokeWidth={2} />
       </motion.button>
