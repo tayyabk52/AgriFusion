@@ -40,6 +40,13 @@ export default function FarmerNetworkPage() {
     });
   };
 
+  const handleError = (errorMessage: string) => {
+    setMessage({
+      type: "error",
+      text: errorMessage,
+    });
+  };
+
   const { isCollapsed, isTemporary } = useSidebar();
 
   // Loading state - checking profile loading
@@ -127,6 +134,7 @@ export default function FarmerNetworkPage() {
                     <CreateFarmerForm
                       consultantId={profile.id}
                       onSuccess={() => handleSuccess("create")}
+                      onError={handleError}
                     />
                   )}
                 </motion.div>

@@ -673,37 +673,24 @@ export const EditFarmerModal: React.FC<EditFarmerModalProps> = ({
                   )}
                 </div>
 
-                {/* District Dropdown or Text Input */}
+                {/* District Dropdown */}
                 <div>
                   <label className="text-sm font-medium text-slate-700">District / City *</label>
-                  {cities.length > 0 ? (
-                    <select
-                      value={formData.district}
-                      onChange={(e) => updateField('district', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-xl mt-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                        errors.district ? 'border-red-300' : 'border-slate-200'
-                      }`}
-                    >
-                      <option value="">Select District/City</option>
-                      {cities.map((city) => (
-                        <option key={city.name} value={city.name}>
-                          {city.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      value={formData.district}
-                      maxLength={100}
-                      onChange={(e) => updateField('district', e.target.value)}
-                      placeholder="Enter District/City"
-                      disabled={!formData.state}
-                      className={`w-full px-4 py-3 border rounded-xl mt-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:cursor-not-allowed ${
-                        errors.district ? 'border-red-300' : 'border-slate-200'
-                      }`}
-                    />
-                  )}
+                  <select
+                    value={formData.district}
+                    onChange={(e) => updateField('district', e.target.value)}
+                    disabled={!formData.state}
+                    className={`w-full px-4 py-3 border rounded-xl mt-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:cursor-not-allowed ${
+                      errors.district ? 'border-red-300' : 'border-slate-200'
+                    }`}
+                  >
+                    <option value="">Select District/City</option>
+                    {cities.map((city) => (
+                      <option key={city.name} value={city.name}>
+                        {city.name}
+                      </option>
+                    ))}
+                  </select>
                   {errors.district && (
                     <p className="text-xs text-red-600 mt-1">{errors.district}</p>
                   )}
