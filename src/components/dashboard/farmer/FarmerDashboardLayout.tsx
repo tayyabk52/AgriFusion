@@ -21,7 +21,13 @@ export function FarmerDashboardLayout({
   avatarUrl,
   isVerified = false,
 }: FarmerDashboardLayoutProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Initialize sidebar as collapsed on mobile/tablet (< 1280px)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1280;
+    }
+    return true; // Default to collapsed for SSR
+  });
 
   return (
     <>
