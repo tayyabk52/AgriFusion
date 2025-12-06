@@ -18,8 +18,19 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isTemporary, setIsTemporary] = useState(false);
+  // Initialize based on window width to avoid flash on mobile
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1280;
+    }
+    return true; // Default to collapsed for SSR
+  });
+  const [isTemporary, setIsTemporary] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1280;
+    }
+    return true; // Default to temporary for SSR
+  });
   // Auto-collapse on smaller screens with better breakpoint handling
   useEffect(() => {
     const handleResize = () => {
