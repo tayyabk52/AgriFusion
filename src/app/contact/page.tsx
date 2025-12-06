@@ -4,7 +4,31 @@ import React, { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { motion } from 'framer-motion';
-import { Mail, Send, CheckCircle2 } from 'lucide-react';
+import { Mail, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+
+// Validation functions
+const validateName = (name: string): string | null => {
+    if (!name.trim()) return 'Name is required';
+    if (name.trim().length < 2) return 'Name must be at least 2 characters';
+    if (name.length > 255) return 'Name must be less than 255 characters';
+    if (!/^[a-zA-Z\s'-]+$/.test(name)) return 'Name can only contain letters, spaces, hyphens, and apostrophes';
+    return null;
+};
+
+const validateEmail = (email: string): string | null => {
+    if (!email.trim()) return 'Email is required';
+    if (email.length > 255) return 'Email must be less than 255 characters';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    return null;
+};
+
+const validateMessage = (message: string): string | null => {
+    if (!message.trim()) return 'Message is required';
+    if (message.trim().length < 10) return 'Message must be at least 10 characters';
+    if (message.length > 5000) return 'Message must be less than 5000 characters';
+    return null;
+};
 
 export default function ContactPage() {
     const [formData, setFormData] = useState({
@@ -12,31 +36,98 @@ export default function ContactPage() {
         email: '',
         message: ''
     });
+    const [validationErrors, setValidationErrors] = useState({
+        name: '',
+        email: '',
+        message: ''
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSubmitError(null);
+
+        // Validate all fields
+        const nameError = validateName(formData.name);
+        const emailError = validateEmail(formData.email);
+        const messageError = validateMessage(formData.message);
+
+        // Set validation errors
+        setValidationErrors({
+            name: nameError || '',
+            email: emailError || '',
+            message: messageError || ''
+        });
+
+        // If any validation errors, don't submit
+        if (nameError || emailError || messageError) {
+            return;
+        }
+
         setIsSubmitting(true);
 
-        // Simulate form submission
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        try {
+            // Call our API route which will extract IP and user agent server-side
+            const response = await fetch('/api/contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: formData.name.trim(),
+                    email: formData.email.trim(),
+                    message: formData.message.trim(),
+                }),
+            });
 
-        setIsSubmitting(false);
-        setIsSubmitted(true);
+            const result = await response.json();
 
-        // Reset form after 3 seconds
-        setTimeout(() => {
-            setIsSubmitted(false);
-            setFormData({ name: '', email: '', message: '' });
-        }, 3000);
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to submit contact form');
+            }
+
+            // Success
+            setIsSubmitted(true);
+
+            // Reset form after 3 seconds
+            setTimeout(() => {
+                setIsSubmitted(false);
+                setFormData({ name: '', email: '', message: '' });
+                setValidationErrors({ name: '', email: '', message: '' });
+            }, 3000);
+
+        } catch (error: any) {
+            console.error('Contact form submission error:', error);
+            setSubmitError(
+                error.message || 'Failed to submit your message. Please try again later.'
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+
         setFormData(prev => ({
             ...prev,
-            [e.target.name]: e.target.value
+            [name]: value
         }));
+
+        // Clear validation error for this field when user starts typing
+        if (validationErrors[name as keyof typeof validationErrors]) {
+            setValidationErrors(prev => ({
+                ...prev,
+                [name]: ''
+            }));
+        }
+
+        // Clear submit error when user makes changes
+        if (submitError) {
+            setSubmitError(null);
+        }
     };
 
     // Animation variants
@@ -149,9 +240,22 @@ export default function ContactPage() {
                                     value={formData.name}
                                     onChange={handleChange}
                                     required
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition-all duration-300 text-slate-900 placeholder-slate-400"
+                                    className={`w-full px-4 py-3 rounded-xl border-2 ${validationErrors.name
+                                        ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
+                                        : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
+                                        } focus:ring-4 outline-none transition-all duration-300 text-slate-900 placeholder-slate-400`}
                                     placeholder="John Doe"
                                 />
+                                {validationErrors.name && (
+                                    <motion.p
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mt-1 text-sm text-red-600 flex items-center gap-1"
+                                    >
+                                        <AlertCircle size={14} />
+                                        {validationErrors.name}
+                                    </motion.p>
+                                )}
                             </motion.div>
 
                             {/* Email Input */}
@@ -166,9 +270,22 @@ export default function ContactPage() {
                                     value={formData.email}
                                     onChange={handleChange}
                                     required
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition-all duration-300 text-slate-900 placeholder-slate-400"
+                                    className={`w-full px-4 py-3 rounded-xl border-2 ${validationErrors.email
+                                        ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
+                                        : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
+                                        } focus:ring-4 outline-none transition-all duration-300 text-slate-900 placeholder-slate-400`}
                                     placeholder="john@example.com"
                                 />
+                                {validationErrors.email && (
+                                    <motion.p
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mt-1 text-sm text-red-600 flex items-center gap-1"
+                                    >
+                                        <AlertCircle size={14} />
+                                        {validationErrors.email}
+                                    </motion.p>
+                                )}
                             </motion.div>
 
                             {/* Message Textarea */}
@@ -183,10 +300,38 @@ export default function ContactPage() {
                                     onChange={handleChange}
                                     required
                                     rows={5}
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none transition-all duration-300 text-slate-900 placeholder-slate-400 resize-none"
+                                    className={`w-full px-4 py-3 rounded-xl border-2 ${validationErrors.message
+                                        ? 'border-red-300 focus:border-red-500 focus:ring-red-100'
+                                        : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-100'
+                                        } focus:ring-4 outline-none transition-all duration-300 text-slate-900 placeholder-slate-400 resize-none`}
                                     placeholder="Tell us how we can help you..."
                                 />
+                                {validationErrors.message && (
+                                    <motion.p
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mt-1 text-sm text-red-600 flex items-center gap-1"
+                                    >
+                                        <AlertCircle size={14} />
+                                        {validationErrors.message}
+                                    </motion.p>
+                                )}
                             </motion.div>
+
+                            {/* Submit Error Banner */}
+                            {submitError && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-start gap-3"
+                                >
+                                    <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
+                                    <div>
+                                        <p className="text-sm font-semibold text-red-900 mb-1">Submission Failed</p>
+                                        <p className="text-sm text-red-700">{submitError}</p>
+                                    </div>
+                                </motion.div>
+                            )}
 
                             {/* Submit Button */}
                             <motion.div variants={itemVariants}>

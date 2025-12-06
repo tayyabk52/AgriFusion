@@ -410,6 +410,7 @@ export default function FarmerRegistration() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -463,6 +464,9 @@ export default function FarmerRegistration() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Store the file object for upload
+      setAvatarFile(file);
+      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => setAvatarPreview(reader.result as string);
       reader.readAsDataURL(file);
@@ -608,6 +612,33 @@ export default function FarmerRegistration() {
         ]);
         setIsLoading(false);
         return;
+      }
+
+      // STEP 2: Upload avatar if provided
+      if (avatarFile) {
+        console.log('Uploading avatar to server...');
+        const uploadFormData = new FormData();
+        uploadFormData.append('profile_id', profileCheck.id);
+        uploadFormData.append('user_id', authData.user.id);
+        uploadFormData.append('avatar', avatarFile);
+
+        const uploadResponse = await fetch('/api/farmer/upload-avatar', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        const uploadResult = await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+          console.error('Avatar upload error:', uploadResult);
+          setValidationErrors([
+            uploadResult.error || 'Failed to upload avatar. Please try again.'
+          ]);
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('✓ Avatar uploaded successfully');
       }
 
       // Profile exists - proceed to success
@@ -889,12 +920,12 @@ export default function FarmerRegistration() {
       <Button
         variant="premium"
         size="lg"
-        onClick={() => router.push('/dashboard/farmer')}
+        onClick={() => router.push('/signin')}
         className="w-full max-w-xs shadow-xl shadow-emerald-500/20"
         icon={<ArrowRight size={18} />}
         iconPosition="right"
       >
-        Go to Dashboard
+        Go to Login
       </Button>
     </motion.div>
   );

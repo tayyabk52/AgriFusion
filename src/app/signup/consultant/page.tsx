@@ -247,9 +247,10 @@ interface SelectFieldProps {
   name: string;
   options: { value: string; label: string; }[];
   isHighlighted?: boolean;
+  disabled?: boolean;
 }
 
-const SelectField = ({ label, icon: Icon, placeholder, value, onChange, required, half, name, options, isHighlighted }: SelectFieldProps) => {
+const SelectField = ({ label, icon: Icon, placeholder, value, onChange, required, half, name, options, isHighlighted, disabled }: SelectFieldProps) => {
   const isFilled = value && value.length > 0;
 
   return (
@@ -267,15 +268,16 @@ const SelectField = ({ label, icon: Icon, placeholder, value, onChange, required
             premium-select w-full bg-slate-50/50 border text-slate-900 text-sm rounded-xl
             focus:ring-0 block pl-10 pr-10 py-2.5
             transition-all outline-none font-medium appearance-none
-            cursor-pointer hover:border-slate-300 hover:bg-white/80
             ${isHighlighted
               ? 'border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
               : `border-slate-200 focus:border-blue-500 group-focus-within:bg-white group-focus-within:shadow-lg group-focus-within:shadow-blue-500/5 ${isFilled ? 'border-slate-300 bg-white text-slate-900' : 'text-slate-400'}`
             }
+            ${disabled ? 'opacity-50 cursor-not-allowed bg-slate-100' : 'cursor-pointer hover:border-slate-300 hover:bg-white/80'}
           `}
           value={value}
           onChange={onChange}
           required={required}
+          disabled={disabled}
         >
           <option value="" disabled className="text-slate-400 bg-slate-50">
             {placeholder}
@@ -424,6 +426,7 @@ export default function ConsultantRegistration() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -433,8 +436,12 @@ export default function ConsultantRegistration() {
     qualification: '',
     experience_years: '',
     country: '',
+    state: '',
+    district: '',
+    service_country: '',
+    service_state: '',
+    service_district: '',
     specialization_areas: [] as string[],
-    service_areas: [] as string[],
   });
 
   const [documents, setDocuments] = useState<{
@@ -452,8 +459,11 @@ export default function ConsultantRegistration() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const [specializationInput, setSpecializationInput] = useState('');
-  const [serviceAreaInput, setServiceAreaInput] = useState('');
   const [countries] = useState<ICountry[]>(() => Country.getAllCountries());
+  const [states, setStates] = useState<IState[]>([]);
+  const [cities, setCities] = useState<ICity[]>([]);
+  const [serviceStates, setServiceStates] = useState<IState[]>([]);
+  const [serviceCities, setServiceCities] = useState<ICity[]>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -462,11 +472,27 @@ export default function ConsultantRegistration() {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setAvatarPreview(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setValidationErrors(['Please upload a JPG, PNG, or GIF image for your profile photo']);
+      return;
     }
+
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      setValidationErrors(['Profile photo must be smaller than 2MB']);
+      return;
+    }
+
+    // Store the file and create preview
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+
+    // Clear any previous validation errors
+    setValidationErrors([]);
   };
 
   const handleAddSpecialization = (specialization: string) => {
@@ -486,24 +512,46 @@ export default function ConsultantRegistration() {
     });
   };
 
-  const handleAddServiceArea = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && serviceAreaInput.trim() !== '') {
-      e.preventDefault();
-      if (!formData.service_areas.includes(serviceAreaInput.trim())) {
-        setFormData({
-          ...formData,
-          service_areas: [...formData.service_areas, serviceAreaInput.trim()]
-        });
-      }
-      setServiceAreaInput('');
+  // Handle personal location changes
+  const handleCountryChange = (countryName: string) => {
+    const selectedCountry = countries.find(c => c.name === countryName);
+    if (selectedCountry) {
+      const countryStates = State.getStatesOfCountry(selectedCountry.isoCode);
+      setStates(countryStates);
+      setCities([]);
+      setFormData(prev => ({ ...prev, country: countryName, state: '', district: '' }));
     }
   };
 
-  const removeServiceArea = (area: string) => {
-    setFormData({
-      ...formData,
-      service_areas: formData.service_areas.filter(a => a !== area)
-    });
+  const handleStateChange = (stateName: string) => {
+    const selectedCountry = countries.find(c => c.name === formData.country);
+    const selectedState = states.find(s => s.name === stateName);
+    if (selectedCountry && selectedState) {
+      const stateCities = City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
+      setCities(stateCities);
+      setFormData(prev => ({ ...prev, state: stateName, district: '' }));
+    }
+  };
+
+  // Handle service location changes
+  const handleServiceCountryChange = (countryName: string) => {
+    const selectedCountry = countries.find(c => c.name === countryName);
+    if (selectedCountry) {
+      const countryStates = State.getStatesOfCountry(selectedCountry.isoCode);
+      setServiceStates(countryStates);
+      setServiceCities([]);
+      setFormData(prev => ({ ...prev, service_country: countryName, service_state: '', service_district: '' }));
+    }
+  };
+
+  const handleServiceStateChange = (stateName: string) => {
+    const selectedCountry = countries.find(c => c.name === formData.service_country);
+    const selectedState = serviceStates.find(s => s.name === stateName);
+    if (selectedCountry && selectedState) {
+      const stateCities = City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
+      setServiceCities(stateCities);
+      setFormData(prev => ({ ...prev, service_state: stateName, service_district: '' }));
+    }
   };
 
   const handleDocumentChange = (docType: 'educational' | 'professional' | 'experience' | 'government', e: React.ChangeEvent<HTMLInputElement>) => {
@@ -522,6 +570,37 @@ export default function ConsultantRegistration() {
 
   const removeDocument = (docType: 'educational' | 'professional' | 'experience' | 'government') => {
     setDocuments(prev => ({ ...prev, [docType]: null }));
+  };
+
+  const uploadAvatar = async (userId: string): Promise<string | null> => {
+    if (!avatarFile) return null;
+
+    try {
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, avatarFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Avatar upload error:', uploadError);
+        return null;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+
+    } catch (error: any) {
+      console.error('Avatar upload error:', error);
+      return null;
+    }
   };
 
   const [highlightedFields, setHighlightedFields] = useState<Set<string>>(new Set());
@@ -589,10 +668,6 @@ export default function ConsultantRegistration() {
         errors.push('Please add at least one specialization area');
         fieldsToHighlight.add('specialization_areas');
       }
-      if (formData.service_areas.length === 0) {
-        errors.push('Please add at least one service area');
-        fieldsToHighlight.add('service_areas');
-      }
     }
 
     if (fieldsToHighlight.size > 0) {
@@ -638,13 +713,11 @@ export default function ConsultantRegistration() {
       if (authError) {
         console.error('Auth Error:', authError);
         setValidationErrors([authError.message]);
-        setIsLoading(false);
         return;
       }
 
       if (!authData.user) {
         setValidationErrors(['Failed to create user account. Please try again.']);
-        setIsLoading(false);
         return;
       }
 
@@ -670,92 +743,93 @@ export default function ConsultantRegistration() {
           `User ID: ${authData.user.id}`,
           'Error: Database trigger may not be configured.'
         ]);
-        setIsLoading(false);
         return;
       }
 
-      // STEP 4: Upload documents to Supabase Storage
-      const { urls: uploadedUrls, errors: uploadErrors } = await uploadConsultantDocuments(
-        profileCheck.id,
-        documents
-      );
+      // STEP 4: Upload files to server (bypasses RLS)
+      console.log('Uploading files to server...');
+      const uploadFormData = new FormData();
+      uploadFormData.append('profile_id', profileCheck.id);
+      uploadFormData.append('user_id', authData.user.id);
 
-      if (uploadErrors.length > 0) {
-        setValidationErrors([
-          'Some documents failed to upload:',
-          ...uploadErrors
-        ]);
-        setIsLoading(false);
-        return;
+      // Add avatar if exists
+      if (avatarFile) {
+        uploadFormData.append('avatar', avatarFile);
       }
 
-      // STEP 5: Update consultant record with document URLs and service areas
-      const { error: consultantUpdateError } = await supabase
-        .from('consultants')
-        .update({
-          certificate_urls: uploadedUrls,
-          service_areas: formData.service_areas,
-        })
-        .eq('profile_id', profileCheck.id);
+      // Add documents
+      if (documents.educational) uploadFormData.append('educational', documents.educational);
+      if (documents.professional) uploadFormData.append('professional', documents.professional);
+      if (documents.experience) uploadFormData.append('experience', documents.experience);
+      if (documents.government) uploadFormData.append('government', documents.government);
 
-      if (consultantUpdateError) {
-        console.error('Consultant update error:', consultantUpdateError);
-        setValidationErrors(['Failed to save consultant data. Please contact support.']);
-        setIsLoading(false);
-        return;
-      }
-
-      // STEP 6: Create approval request
-      const documentMetadata = {
-        educational: uploadedUrls.find(url => url.includes('educational')) || null,
-        professional: uploadedUrls.find(url => url.includes('professional')) || null,
-        experience: uploadedUrls.find(url => url.includes('experience')) || null,
-        government: uploadedUrls.find(url => url.includes('government')) || null,
-        submitted_at: new Date().toISOString(),
-      };
-
-      const { error: approvalError } = await supabase
-        .from('approval_requests')
-        .insert({
-          profile_id: profileCheck.id,
-          request_type: 'registration',
-          status: 'pending',
-          submitted_documents: documentMetadata,
-        });
-
-      if (approvalError) {
-        console.error('Approval request error:', approvalError);
-        // Don't fail completely - this is non-critical
-      }
-
-      // STEP 7: Create welcome notification
-      await supabase.from('notifications').insert({
-        recipient_id: profileCheck.id,
-        type: 'welcome',
-        title: 'Welcome to AgriFusion!',
-        message: 'Your consultant application has been submitted. Our team will review your credentials within 2-3 business days.',
+      const uploadResponse = await fetch('/api/consultant/upload-files', {
+        method: 'POST',
+        body: uploadFormData,
       });
 
-      // Success - move to next step
-      setIsLoading(false);
-      nextStep(); // Move to success screen
+      const uploadResult = await uploadResponse.json();
+
+      if (!uploadResponse.ok) {
+        console.error('File upload error:', uploadResult);
+        setValidationErrors([
+          uploadResult.error || 'Failed to upload files. Please try again.'
+        ]);
+        return;
+      }
+
+      const avatarUrl = uploadResult.data.avatar_url;
+      const uploadedUrls = uploadResult.data.document_urls;
+
+      console.log('✓ Files uploaded successfully');
+
+      // STEP 5: Complete registration via API route
+      // This uses supabaseAdmin to bypass RLS policies
+      // Note: We use authData.user.id as a basic identifier since no session with email confirmation
+      const registrationResponse = await fetch('/api/consultant/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Send user ID for server-side validation
+          'X-User-ID': authData.user.id,
+        },
+        body: JSON.stringify({
+          avatar_url: avatarUrl,
+          country: formData.country || null,
+          state: formData.state || null,
+          district: formData.district || null,
+          service_country: formData.service_country || null,
+          service_state: formData.service_state || null,
+          service_district: formData.service_district || null,
+          document_urls: uploadedUrls,
+        }),
+      });
+
+      const registrationResult = await registrationResponse.json();
+
+      if (!registrationResponse.ok) {
+        console.error('Registration completion error:', registrationResult);
+        setValidationErrors([
+          registrationResult.error || 'Failed to complete registration. Please contact support.'
+        ]);
+        return;
+      }
+
+      // Success - move to success screen
+      nextStep();
 
     } catch (error: any) {
       console.error('Registration Error:', error);
       const errorMessage = error.message || 'An unexpected error occurred during registration';
       setValidationErrors([errorMessage]);
+    } finally {
+      // Always stop loading, whether success or failure
       setIsLoading(false);
     }
   };
 
   const handleBackToSignup = () => {
     router.push('/signup');
-  };
-
-  // Helper to get field classes with highlight animation
-  const getFieldClasses = (fieldName: string, baseClasses: string) => {
-    const isHighlighted = highlightedFields.has(fieldName);
-    return `${baseClasses} ${isHighlighted ? 'ring-2 ring-red-400 border-red-400 animate-shake' : ''}`;
   };
 
   // ---------------- STEP CONTENT RENDERERS ---------------- //
@@ -813,49 +887,86 @@ export default function ConsultantRegistration() {
 
   const renderProfessionalStep = () => {
     const countryOptions = countries.map(c => ({ value: c.name, label: c.name }));
+    const stateOptions = states.map(s => ({ value: s.name, label: s.name }));
+    const cityOptions = cities.map(c => ({ value: c.name, label: c.name }));
 
     return (
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -20 }}
-        className="grid grid-cols-2 gap-4"
+        className="space-y-6"
       >
-        <InputField
-          label="Highest Qualification"
-          name="qualification"
-          icon={GraduationCap}
-          placeholder="e.g. MSc in Agriculture"
-          value={formData.qualification}
-          onChange={handleChange}
-          required
-          isHighlighted={highlightedFields.has('qualification')}
-        />
-        <InputField
-          label="Years of Experience"
-          name="experience_years"
-          icon={Award}
-          type="number"
-          placeholder="e.g. 10"
-          value={formData.experience_years}
-          onChange={handleChange}
-          required
-          half
-          min={0}
-          isHighlighted={highlightedFields.has('experience_years')}
-        />
-        <SelectField
-          label="Country"
-          name="country"
-          icon={MapPin}
-          placeholder="Select Country"
-          value={formData.country}
-          onChange={handleChange}
-          required
-          half
-          options={countryOptions}
-          isHighlighted={highlightedFields.has('country')}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <InputField
+            label="Highest Qualification"
+            name="qualification"
+            icon={GraduationCap}
+            placeholder="e.g. MSc in Agriculture"
+            value={formData.qualification}
+            onChange={handleChange}
+            required
+            isHighlighted={highlightedFields.has('qualification')}
+          />
+          <InputField
+            label="Years of Experience"
+            name="experience_years"
+            icon={Award}
+            type="number"
+            placeholder="e.g. 10"
+            value={formData.experience_years}
+            onChange={handleChange}
+            required
+            half
+            min={0}
+            isHighlighted={highlightedFields.has('experience_years')}
+          />
+        </div>
+
+        {/* Personal Location Section */}
+        <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-5">
+          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4">
+            Personal Location
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <SelectField
+              label="Country"
+              name="country"
+              icon={MapPin}
+              placeholder="Select Country"
+              value={formData.country}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              required
+              half
+              options={countryOptions}
+              isHighlighted={highlightedFields.has('country')}
+            />
+            <SelectField
+              label="State/Province"
+              name="state"
+              icon={MapPin}
+              placeholder="Select State"
+              value={formData.state}
+              onChange={(e) => handleStateChange(e.target.value)}
+              required
+              half
+              options={stateOptions}
+              disabled={!formData.country}
+            />
+            <SelectField
+              label="District/City"
+              name="district"
+              icon={MapPin}
+              placeholder="Select District"
+              value={formData.district}
+              onChange={handleChange}
+              required
+              half
+              options={cityOptions}
+              disabled={!formData.state}
+            />
+          </div>
+        </div>
 
         {/* Document Upload Section */}
         <div className="col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
@@ -1126,48 +1237,45 @@ export default function ConsultantRegistration() {
         </div>
       </div>
 
-      {/* Service Areas */}
-      <div className={`bg-white rounded-xl p-5 shadow-sm transition-all ${
-        highlightedFields.has('service_areas')
-          ? 'border-2 border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
-          : 'border border-slate-200'
-      }`}>
-        <label className={`block text-xs font-bold uppercase tracking-wider mb-3 transition-colors ${
-          highlightedFields.has('service_areas') ? 'text-red-500 animate-pulse' : 'text-slate-500'
-        }`}>
-          Service Areas (Districts/Cities)
-        </label>
-
-        <div className="flex flex-wrap gap-2 mb-4 min-h-[40px]">
-          {formData.service_areas.map((area, idx) => (
-            <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100 shadow-sm animate-scale-in">
-              {area}
-              <button onClick={() => removeServiceArea(area)} className="text-emerald-400 hover:text-red-500 transition-colors" type="button">
-                <X size={14} />
-              </button>
-            </span>
-          ))}
-          {formData.service_areas.length === 0 && (
-            <span className="text-sm text-slate-400 italic py-1.5">No service areas added yet...</span>
-          )}
-        </div>
-
-        <div className="relative group">
-          <input
-            id="service-area-input"
-            type="text"
-            className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-0 focus:border-blue-500 block pl-10 p-3 transition-all outline-none font-medium"
-            placeholder="Type district/city name & press Enter"
-            value={serviceAreaInput}
-            onChange={(e) => setServiceAreaInput(e.target.value)}
-            onKeyDown={handleAddServiceArea}
+      {/* Service Location Section */}
+      <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-5">
+        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+          Service Location
+        </h3>
+        <p className="text-xs text-slate-500 mb-4">Where do you provide your consultation services?</p>
+        <div className="grid grid-cols-2 gap-4">
+          <SelectField
+            label="Service Country"
+            name="service_country"
+            icon={MapPin}
+            placeholder="Select Service Country"
+            value={formData.service_country}
+            onChange={(e) => handleServiceCountryChange(e.target.value)}
+            half
+            options={countries.map(c => ({ value: c.name, label: c.name }))}
           />
-          <div className="absolute left-3 top-3 text-slate-400 group-focus-within:text-blue-500">
-            <MapPin size={18} />
-          </div>
-          <div className="absolute right-3 top-2 px-2 py-1 bg-white rounded text-[10px] font-bold text-slate-400 uppercase tracking-wide border border-slate-200 shadow-sm">
-            Enter
-          </div>
+          <SelectField
+            label="Service State/Province"
+            name="service_state"
+            icon={MapPin}
+            placeholder="Select Service State"
+            value={formData.service_state}
+            onChange={(e) => handleServiceStateChange(e.target.value)}
+            half
+            options={serviceStates.map(s => ({ value: s.name, label: s.name }))}
+            disabled={!formData.service_country}
+          />
+          <SelectField
+            label="Service District/City"
+            name="service_district"
+            icon={MapPin}
+            placeholder="Select Service District"
+            value={formData.service_district}
+            onChange={handleChange}
+            half
+            options={serviceCities.map(c => ({ value: c.name, label: c.name }))}
+            disabled={!formData.service_state}
+          />
         </div>
       </div>
 
@@ -1223,7 +1331,10 @@ export default function ConsultantRegistration() {
           <ReviewField label="Qualification" value={formData.qualification} />
           <ReviewField label="Experience" value={formData.experience_years ? `${formData.experience_years} Years` : ''} />
           <div className="col-span-2">
-            <ReviewField label="Country" value={formData.country} />
+            <ReviewField
+              label="Personal Location"
+              value={[formData.district, formData.state, formData.country].filter(Boolean).join(', ')}
+            />
           </div>
         </div>
       </div>
@@ -1254,16 +1365,14 @@ export default function ConsultantRegistration() {
             </div>
           </div>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 block">Service Areas</span>
-            <div className="flex flex-wrap gap-2">
-              {formData.service_areas.length > 0 ? (
-                formData.service_areas.map((a, i) => (
-                  <span key={i} className="inline-block px-2.5 py-1 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-bold rounded-md">
-                    {a}
-                  </span>
-                ))
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 block">Service Location</span>
+            <div className="flex items-center gap-2">
+              {[formData.service_district, formData.service_state, formData.service_country].filter(Boolean).length > 0 ? (
+                <span className="inline-block px-2.5 py-1 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-bold rounded-md">
+                  {[formData.service_district, formData.service_state, formData.service_country].filter(Boolean).join(', ')}
+                </span>
               ) : (
-                <span className="text-sm text-slate-400 italic">None listed</span>
+                <span className="text-sm text-slate-400 italic">Not provided</span>
               )}
             </div>
           </div>
@@ -1291,7 +1400,7 @@ export default function ConsultantRegistration() {
       <Button
         variant="premium"
         size="lg"
-        onClick={() => router.push('/login')}
+        onClick={() => router.push('/signin')}
         className="w-full max-w-xs shadow-xl shadow-blue-500/20"
         icon={<ArrowRight size={18} />}
         iconPosition="right"

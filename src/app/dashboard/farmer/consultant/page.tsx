@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ConsultantProfileSkeleton } from '@/components/dashboard/farmer/skeletons/ConsultantProfileSkeleton';
 import { motion } from 'framer-motion';
-import { GraduationCap, Mail, Phone, Award, Briefcase, Clock, UserCheck, AlertCircle } from 'lucide-react';
+import { GraduationCap, Mail, Phone, Award, Briefcase, Clock, UserCheck, AlertCircle, MapPin } from 'lucide-react';
 import Image from 'next/image';
 
 interface Profile {
@@ -26,6 +26,12 @@ interface ConsultantData {
     qualification?: string;
     experience_years?: number;
     specialization_areas?: string[];
+    country?: string;
+    state?: string;
+    district?: string;
+    service_country?: string;
+    service_state?: string;
+    service_district?: string;
 }
 
 export default function MyConsultantPage() {
@@ -103,7 +109,13 @@ export default function MyConsultantPage() {
                     profile: consultantProfile,
                     qualification: consultant.qualification,
                     experience_years: consultant.experience_years,
-                    specialization_areas: consultant.specialization_areas
+                    specialization_areas: consultant.specialization_areas,
+                    country: consultant.country,
+                    state: consultant.state,
+                    district: consultant.district,
+                    service_country: consultant.service_country,
+                    service_state: consultant.service_state,
+                    service_district: consultant.service_district,
                 });
             }
         } catch (error) {
@@ -187,44 +199,53 @@ export default function MyConsultantPage() {
                                 <h2 className="text-2xl font-bold text-slate-900 mb-2">
                                     {consultantData.profile.full_name}
                                 </h2>
-                                <div className="flex items-center gap-2 mb-3">
+                                <div className="flex flex-wrap items-center gap-2 mb-3">
                                     <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200">
                                         Active Consultant
                                     </span>
-                                    {consultantData.experience_years && (
-                                        <span className="text-sm text-slate-600 font-medium">
+                                    {consultantData.experience_years && consultantData.experience_years > 0 && (
+                                        <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-semibold border border-amber-200">
                                             {consultantData.experience_years}+ years experience
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-sm text-slate-600">
-                                    Specialized agricultural consultant dedicated to helping you succeed
-                                </p>
+
+                                {/* Location Information */}
+                                {(consultantData.country || consultantData.state || consultantData.district) && (
+                                    <div className="flex items-start gap-2 text-sm text-slate-600">
+                                        <MapPin size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
+                                        <span>
+                                            {[consultantData.district, consultantData.state, consultantData.country]
+                                                .filter(Boolean)
+                                                .join(', ')}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Contact Information */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0">
                                     <Mail className="text-slate-600" size={18} />
                                 </div>
-                                <div>
+                                <div className="min-w-0 flex-1">
                                     <p className="text-xs text-slate-500 mb-0.5">Email</p>
-                                    <p className="text-sm font-semibold text-slate-900">
+                                    <p className="text-sm font-semibold text-slate-900 break-all">
                                         {consultantData.profile.email}
                                     </p>
                                 </div>
                             </div>
 
                             {consultantData.profile.phone && (
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0">
                                         <Phone className="text-slate-600" size={18} />
                                     </div>
-                                    <div>
+                                    <div className="min-w-0 flex-1">
                                         <p className="text-xs text-slate-500 mb-0.5">Phone</p>
-                                        <p className="text-sm font-semibold text-slate-900">
+                                        <p className="text-sm font-semibold text-slate-900 break-all">
                                             {consultantData.profile.phone}
                                         </p>
                                     </div>
@@ -276,11 +297,42 @@ export default function MyConsultantPage() {
                         <p className="text-sm text-slate-600">Years</p>
                     </motion.div>
 
+                    {/* Service Location Card */}
+                    {(consultantData.service_country || consultantData.service_state || consultantData.service_district) && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.25 }}
+                            className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                                    <MapPin className="text-purple-600" size={20} strokeWidth={2} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-semibold text-slate-900">Service Area</h3>
+                                    <p className="text-xs text-slate-500">Providing services in</p>
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                {consultantData.service_district && (
+                                    <p className="text-base font-semibold text-slate-900">{consultantData.service_district}</p>
+                                )}
+                                {consultantData.service_state && (
+                                    <p className="text-sm text-slate-600">{consultantData.service_state}</p>
+                                )}
+                                {consultantData.service_country && (
+                                    <p className="text-sm text-slate-500">{consultantData.service_country}</p>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+
                     {/* Specialization Areas Card */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.25 }}
+                        transition={{ delay: 0.3 }}
                         className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100"
                     >
                         <div className="flex items-center gap-3 mb-6">

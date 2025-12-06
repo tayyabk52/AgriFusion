@@ -7,10 +7,12 @@ import Loader from '@/components/ui/Loader';
 import { Button } from '@/components/ui/Button';
 import {
     User, Mail, Phone,
-    Camera, Save, Lock, Shield, AlertCircle, CheckCircle2, X
+    Camera, Save, Lock, Shield, AlertCircle, CheckCircle2, X, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { Country, ICountry } from 'country-state-city';
+import * as flags from 'country-flag-icons/react/3x2';
 
 
 interface Profile {
@@ -36,6 +38,41 @@ interface FarmerData {
     current_crops?: string[];
 }
 
+/**
+ * Helper: Parse phone number with country code
+ * Extracts country code and phone number from full phone string
+ */
+const parsePhoneNumber = (fullPhone: string, countries: ICountry[]): { countryCode: string; phoneNumber: string } => {
+    if (!fullPhone) return { countryCode: '+92', phoneNumber: '' };
+    if (!fullPhone.startsWith('+')) {
+        return { countryCode: '+92', phoneNumber: fullPhone.replace(/\D/g, '') };
+    }
+
+    // Sort countries by phonecode length (descending) to match longest first
+    const sortedCountries = [...countries].sort((a, b) => b.phonecode.length - a.phonecode.length);
+
+    for (const country of sortedCountries) {
+        const codeToMatch = `+${country.phonecode}`;
+        if (fullPhone.startsWith(codeToMatch)) {
+            const phoneNumber = fullPhone.substring(codeToMatch.length);
+            if (/^\d+$/.test(phoneNumber) && phoneNumber.length >= 7) {
+                return {
+                    countryCode: codeToMatch,
+                    phoneNumber: phoneNumber
+                };
+            }
+        }
+    }
+
+    // Fallback regex
+    const match = fullPhone.match(/^(\+\d{1,4})(\d{7,15})$/);
+    if (match) {
+        return { countryCode: match[1], phoneNumber: match[2] };
+    }
+
+    return { countryCode: '+92', phoneNumber: fullPhone.replace(/\+/g, '') };
+};
+
 export default function FarmerSettings() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
@@ -47,10 +84,15 @@ export default function FarmerSettings() {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [farmerData, setFarmerData] = useState<FarmerData | null>(null);
 
+    // Phone validation
+    const [countries] = useState<ICountry[]>(() => Country.getAllCountries());
+    const [phoneValidationError, setPhoneValidationError] = useState<string>('');
+
     // Form States
     const [formData, setFormData] = useState({
         full_name: '',
         phone: '',
+        phoneCountryCode: '+92',
     });
 
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -99,10 +141,14 @@ export default function FarmerSettings() {
             if (farmerError && farmerError.code !== 'PGRST116') throw farmerError;
             setFarmerData(farmer);
 
+            // Parse phone number if exists
+            const parsedPhone = parsePhoneNumber(profileData.phone || '', countries);
+
             // Initialize Form Data
             setFormData({
                 full_name: profileData.full_name || '',
-                phone: profileData.phone || '',
+                phone: parsedPhone.phoneNumber,
+                phoneCountryCode: parsedPhone.countryCode,
             });
 
             // Set initial avatar
@@ -121,6 +167,49 @@ export default function FarmerSettings() {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        // Clear phone validation error when user types
+        if (name === 'phone') {
+            setPhoneValidationError('');
+        }
+    };
+
+    const handlePhoneChange = (value: string) => {
+        // Only allow digits
+        const cleanedValue = value.replace(/\D/g, '').slice(0, 15);
+        setFormData(prev => ({ ...prev, phone: cleanedValue }));
+        setPhoneValidationError('');
+    };
+
+    const handlePhoneCountryCodeChange = (newCountryCode: string) => {
+        setFormData(prev => ({ ...prev, phoneCountryCode: newCountryCode }));
+        setPhoneValidationError('');
+    };
+
+    /**
+     * Validate phone number with country-specific rules
+     * Matches the validation logic from CreateFarmerForm
+     */
+    const validatePhoneNumber = (): boolean => {
+        if (!formData.phone.trim()) {
+            setPhoneValidationError('Phone number is required');
+            return false;
+        }
+        if (!/^\d+$/.test(formData.phone)) {
+            setPhoneValidationError('Phone number must contain only digits');
+            return false;
+        }
+        if (formData.phone.length < 7 || formData.phone.length > 15) {
+            setPhoneValidationError('Phone number must be between 7 and 15 digits');
+            return false;
+        }
+        if (formData.phoneCountryCode === '+92' && formData.phone.length !== 10) {
+            setPhoneValidationError('Pakistani phone numbers must be exactly 10 digits');
+            return false;
+        }
+
+        setPhoneValidationError('');
+        return true;
     };
 
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,6 +230,13 @@ export default function FarmerSettings() {
 
     const handleSaveProfile = async () => {
         if (!profile) return;
+
+        // Validate phone number before saving
+        if (!validatePhoneNumber()) {
+            setMessage({ type: 'error', text: phoneValidationError });
+            return;
+        }
+
         setSaving(true);
         setMessage(null);
 
@@ -166,12 +262,15 @@ export default function FarmerSettings() {
                 avatarUrl = publicUrl;
             }
 
+            // Combine phone with country code
+            const fullPhone = `${formData.phoneCountryCode}${formData.phone}`;
+
             // Update Profile Table
             const { error: profileUpdateError } = await supabase
                 .from('profiles')
                 .update({
                     full_name: formData.full_name,
-                    phone: formData.phone,
+                    phone: fullPhone,
                     avatar_url: avatarUrl,
                     updated_at: new Date().toISOString(),
                 })
@@ -180,7 +279,7 @@ export default function FarmerSettings() {
             if (profileUpdateError) throw profileUpdateError;
 
             // Refresh local state
-            setProfile(prev => prev ? { ...prev, full_name: formData.full_name, phone: formData.phone, avatar_url: avatarUrl } : null);
+            setProfile(prev => prev ? { ...prev, full_name: formData.full_name, phone: fullPhone, avatar_url: avatarUrl } : null);
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
 
         } catch (error: any) {
@@ -310,19 +409,52 @@ export default function FarmerSettings() {
                                             />
                                         </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number</label>
-                                        <div className="relative">
-                                            <Phone className="absolute left-3 top-3 text-slate-400" size={18} />
+                                    <div className="space-y-2 md:col-span-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number *</label>
+                                        <div className={`flex w-full rounded-xl bg-slate-50 transition-all duration-200 hover:bg-slate-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 border ${phoneValidationError ? 'border-red-300 bg-red-50/50' : 'border-slate-200'}`}>
+                                            {/* Country Code Selector */}
+                                            <div className="relative border-r border-slate-200/60 shrink-0">
+                                                <div className="absolute inset-0 flex items-center pl-3 pointer-events-none">
+                                                    {(() => {
+                                                        const selectedPhoneCountry = countries.find(c => c.phonecode === formData.phoneCountryCode.replace('+', ''));
+                                                        const FlagComponent = selectedPhoneCountry ? (flags as any)[selectedPhoneCountry.isoCode] : null;
+                                                        return FlagComponent ? (
+                                                            <FlagComponent className="rounded-[2px] shadow-sm" style={{ width: '20px', height: 'auto' }} />
+                                                        ) : null;
+                                                    })()}
+                                                </div>
+                                                <select
+                                                    value={formData.phoneCountryCode}
+                                                    onChange={(e) => handlePhoneCountryCodeChange(e.target.value)}
+                                                    className="h-full bg-transparent text-xs font-semibold text-slate-700 rounded-l-xl py-2.5 pl-10 pr-7 focus:outline-none appearance-none cursor-pointer"
+                                                >
+                                                    {countries.map((country) => (
+                                                        <option key={country.isoCode} value={`+${country.phonecode}`} className="text-slate-900">
+                                                            +{country.phonecode} ({country.isoCode})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                            </div>
+
+                                            {/* Phone Code Display */}
+                                            <div className="hidden sm:flex items-center px-3 bg-slate-100/50 text-xs font-semibold text-slate-500 border-r border-slate-200/60 shrink-0">
+                                                {formData.phoneCountryCode}
+                                            </div>
+
+                                            {/* Phone Number Input */}
                                             <input
                                                 type="tel"
-                                                name="phone"
                                                 value={formData.phone}
-                                                onChange={handleInputChange}
-                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                                                placeholder="+91 98765 43210"
+                                                onChange={(e) => handlePhoneChange(e.target.value)}
+                                                placeholder="3001234567"
+                                                maxLength={15}
+                                                className="flex-1 min-w-0 px-3.5 py-2.5 text-sm bg-transparent border-none focus:ring-0 focus:outline-none placeholder:text-slate-300 rounded-r-xl"
                                             />
                                         </div>
+                                        {phoneValidationError && (
+                                            <p className="text-xs text-red-600 mt-1 ml-1 font-medium">{phoneValidationError}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

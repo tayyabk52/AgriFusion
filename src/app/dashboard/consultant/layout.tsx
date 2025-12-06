@@ -12,12 +12,14 @@ export default function ConsultantLayout({
 }) {
   return (
     <ProfileProvider requiredRole="consultant">
-      <SidebarProvider>
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900" style={{ overflowX: 'clip' }}>
-          <Sidebar />
-          <ConsultantApprovalProvider>{children}</ConsultantApprovalProvider>
-        </div>
-      </SidebarProvider>
+      <ConsultantApprovalProvider>
+        <SidebarProvider>
+          <div className="min-h-screen bg-slate-50 font-sans text-slate-900" style={{ overflowX: 'clip' }}>
+            <Sidebar />
+            {children}
+          </div>
+        </SidebarProvider>
+      </ConsultantApprovalProvider>
     </ProfileProvider>
   );
 }
