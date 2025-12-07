@@ -19,6 +19,7 @@ import {
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { supabase } from '@/lib/supabaseClient';
 
 const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/farmer', badge: null },
@@ -228,7 +229,7 @@ export function FarmerSidebar({ isCollapsed, setIsCollapsed }: FarmerSidebarProp
                         whileHover={{ x: 4 }}
                         className="w-full flex items-center gap-4 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-950/20 rounded-xl transition-all mt-2"
                         onClick={async () => {
-                            // Implement logout
+                            await supabase.auth.signOut();
                             router.push('/signin');
                         }}
                     >

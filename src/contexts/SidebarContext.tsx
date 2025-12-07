@@ -18,19 +18,10 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  // Initialize based on window width to avoid flash on mobile
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth < 1280;
-    }
-    return true; // Default to collapsed for SSR
-  });
-  const [isTemporary, setIsTemporary] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth < 1280;
-    }
-    return true; // Default to temporary for SSR
-  });
+  // Always initialize to collapsed state to avoid hydration mismatch
+  // The useEffect below will update to the correct state after mount
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isTemporary, setIsTemporary] = useState(true);
   // Auto-collapse on smaller screens with better breakpoint handling
   useEffect(() => {
     const handleResize = () => {

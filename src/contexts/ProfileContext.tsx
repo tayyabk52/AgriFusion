@@ -59,6 +59,29 @@ export function ProfileProvider({ children, requiredRole = 'consultant' }: Profi
 
     useEffect(() => {
         fetchProfileData();
+
+        // Listen for auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    // User signed in - refresh profile data
+                    await fetchProfileData();
+                } else if (event === 'SIGNED_OUT') {
+                    // User signed out - clear all state
+                    setProfile(null);
+                    setNotifications([]);
+                    router.push('/signin');
+                } else if (event === 'TOKEN_REFRESHED' && session) {
+                    // Token refreshed - optionally re-fetch profile
+                    await fetchProfileData();
+                }
+            }
+        );
+
+        // Cleanup subscription on unmount
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     const fetchProfileData = async () => {

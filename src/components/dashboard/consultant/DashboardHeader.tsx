@@ -5,6 +5,7 @@ import { ChevronDown, LogOut, Settings, BadgeCheck, Bell, Search, SlidersHorizon
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useProfile } from '@/contexts/ProfileContext';
+import { supabase } from '@/lib/supabaseClient';
 
 export const DashboardHeader = () => {
     const router = useRouter();
@@ -130,7 +131,8 @@ export const DashboardHeader = () => {
                                     </div>
                                     <div className="p-2 border-t border-slate-100">
                                         <button
-                                            onClick={() => {
+                                            onClick={async () => {
+                                                await supabase.auth.signOut();
                                                 router.push('/signin');
                                             }}
                                             aria-label="Logout from account"
