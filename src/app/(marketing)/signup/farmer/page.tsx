@@ -567,6 +567,22 @@ export default function FarmerRegistration() {
     setValidationErrors([]);
 
     try {
+      // PRE-CHECK: Verify email is not already in use
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', formData.email)
+        .maybeSingle();
+
+      if (existingProfile) {
+        setValidationErrors([
+          'This email is already registered.',
+          'Please sign in instead, or use a different email address.'
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
       // Step 1: Create auth user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -582,7 +598,12 @@ export default function FarmerRegistration() {
 
       if (authError) {
         console.error('Auth Error:', authError);
-        setValidationErrors([authError.message]);
+        // Provide friendlier error messages
+        if (authError.message.includes('already registered')) {
+          setValidationErrors(['This email is already registered. Please sign in or use a different email.']);
+        } else {
+          setValidationErrors([authError.message]);
+        }
         setIsLoading(false);
         return;
       }

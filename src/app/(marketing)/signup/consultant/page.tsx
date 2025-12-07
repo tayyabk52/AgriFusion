@@ -700,6 +700,22 @@ export default function ConsultantRegistration() {
     setValidationErrors([]);
 
     try {
+      // PRE-CHECK: Verify email is not already in use
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', formData.email)
+        .maybeSingle();
+
+      if (existingProfile) {
+        setValidationErrors([
+          'This email is already registered.',
+          'Please sign in instead, or use a different email address.'
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
       // STEP 1: Create auth user with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -718,7 +734,12 @@ export default function ConsultantRegistration() {
 
       if (authError) {
         console.error('Auth Error:', authError);
-        setValidationErrors([authError.message]);
+        // Provide friendlier error messages
+        if (authError.message.includes('already registered')) {
+          setValidationErrors(['This email is already registered. Please sign in or use a different email.']);
+        } else {
+          setValidationErrors([authError.message]);
+        }
         return;
       }
 
@@ -1177,8 +1198,8 @@ export default function ConsultantRegistration() {
     >
       {/* Specialization Areas */}
       <div className={`bg-white rounded-xl p-5 shadow-sm transition-all ${highlightedFields.has('specialization_areas')
-          ? 'border-2 border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
-          : 'border border-slate-200'
+        ? 'border-2 border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
+        : 'border border-slate-200'
         }`}>
         <label className={`block text-xs font-bold uppercase tracking-wider mb-3 transition-colors ${highlightedFields.has('specialization_areas') ? 'text-red-500 animate-pulse' : 'text-slate-500'
           }`}>
@@ -1209,8 +1230,8 @@ export default function ConsultantRegistration() {
                 onClick={() => handleAddSpecialization(spec)}
                 disabled={formData.specialization_areas.includes(spec)}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${formData.specialization_areas.includes(spec)
-                    ? 'bg-blue-50 text-blue-400 border-blue-200 cursor-not-allowed opacity-50'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'
+                  ? 'bg-blue-50 text-blue-400 border-blue-200 cursor-not-allowed opacity-50'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'
                   }`}
               >
                 {spec}

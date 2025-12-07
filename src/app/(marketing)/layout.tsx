@@ -12,16 +12,16 @@ export default function MarketingLayout({
 }) {
   const pathname = usePathname();
 
-  // Hide navbar on signup pages (they have their own header)
-  const hideNavbar = pathname?.startsWith('/signup/');
+  // Hide navbar and footer on signup pages (they are fullscreen experiences with their own header)
+  const isSignupPage = pathname?.startsWith('/signup/');
 
   return (
     <>
-      {!hideNavbar && <Navbar />}
+      {!isSignupPage && <Navbar />}
       <main className="min-h-screen">
         {children}
       </main>
-      <Footer />
+      {!isSignupPage && <Footer />}
     </>
   );
 }
