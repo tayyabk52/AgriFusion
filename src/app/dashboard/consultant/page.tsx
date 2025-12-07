@@ -73,7 +73,7 @@ export default function ConsultantDashboard() {
       setLoading(true);
       await fetchActiveFarmersCount(profile.id);
     } catch (err) {
-      console.error("Error fetching KPIs:", err);
+      // Error handling - KPIs will remain at default values
     } finally {
       setLoading(false);
     }
@@ -146,7 +146,7 @@ export default function ConsultantDashboard() {
         }));
       }
     } catch (err) {
-      console.error("Error fetching farmer count:", err);
+      // Error handled silently - UI shows default values
     }
   };
 

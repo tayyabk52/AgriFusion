@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   Users,
   Search,
-  Filter,
   MoreVertical,
   MapPin,
   Phone,
@@ -136,7 +135,7 @@ export default function FarmersPage() {
         .is("consultant_id", null);
 
       if (pendingError) {
-        console.error("Error fetching pending count:", pendingError);
+        // Silently handle - pending count defaults to 0
       }
 
       const farmersData = (data || []) as FarmerWithProfile[];
@@ -145,9 +144,9 @@ export default function FarmersPage() {
 
       // Calculate stats with pending count
       calculateStats(farmersData, pendingCount || 0);
-    } catch (error: any) {
-      console.error("Error fetching farmers:", error);
-      setMessage({ type: "error", text: "Failed to load farmers data." });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load farmers data.';
+      setMessage({ type: "error", text: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -195,9 +194,7 @@ export default function FarmersPage() {
   };
 
   const handleViewFarmer = (farmer: FarmerWithProfile) => {
-    // For now, just show farmer details in console
-    // You could create a ViewFarmerModal later if needed
-    console.log("View farmer:", farmer);
+    // TODO: Create ViewFarmerModal for detailed view
     setMessage({ type: "success", text: "View details feature coming soon!" });
   };
 
@@ -235,8 +232,7 @@ export default function FarmersPage() {
       refreshFarmersList();
       setShowRemoveConfirmModal(false);
       setFarmerToRemove(null);
-    } catch (err: any) {
-      console.error("Remove farmer error:", err);
+    } catch (err: unknown) {
       setMessage({
         type: "error",
         text: "Failed to remove farmer. Please try again.",

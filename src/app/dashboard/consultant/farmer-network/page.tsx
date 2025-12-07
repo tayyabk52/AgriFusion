@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { OnboardingPageHeader } from "@/components/dashboard/consultant/OnboardingPageHeader";
 import { OnboardingTabs } from "@/components/dashboard/consultant/OnboardingTabs";
 import { LinkExistingFarmerForm } from "@/components/dashboard/consultant/LinkExistingFarmerForm";
@@ -14,7 +13,6 @@ import { DashboardHeader } from "@/components/dashboard/consultant/DashboardHead
 import { useSidebar } from "@/contexts/SidebarContext";
 
 export default function FarmerNetworkPage() {
-  const router = useRouter();
   const { isApproved } = useConsultantApproval();
   const { profile, isLoading: profileLoading } = useProfile();
   const [activeTab, setActiveTab] = useState<"link" | "create">("link");
@@ -148,11 +146,10 @@ export default function FarmerNetworkPage() {
                   initial={{ opacity: 0, y: 50, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                  className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg border ${
-                    message.type === "success"
+                  className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg border ${message.type === "success"
                       ? "bg-white border-emerald-200"
                       : "bg-white border-red-200"
-                  }`}
+                    }`}
                 >
                   {message.type === "success" ? (
                     <CheckCircle2 size={18} className="text-emerald-600" />

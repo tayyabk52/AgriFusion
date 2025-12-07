@@ -65,6 +65,38 @@ const QUERIES_DATA = [
   },
 ];
 
+// Stats configuration with explicit Tailwind classes
+const STATS_CONFIG = [
+  {
+    label: "Total Queries",
+    value: "8",
+    icon: MessageSquare,
+    iconClass: "text-slate-600",
+    badgeClass: "bg-slate-50 text-slate-700",
+  },
+  {
+    label: "Pending",
+    value: "3",
+    icon: Clock,
+    iconClass: "text-amber-600",
+    badgeClass: "bg-amber-50 text-amber-700",
+  },
+  {
+    label: "Answered",
+    value: "2",
+    icon: CheckCircle2,
+    iconClass: "text-emerald-600",
+    badgeClass: "bg-emerald-50 text-emerald-700",
+  },
+  {
+    label: "High Priority",
+    value: "2",
+    icon: AlertCircle,
+    iconClass: "text-red-600",
+    badgeClass: "bg-red-50 text-red-700",
+  },
+];
+
 export default function QueriesPage() {
   const { isCollapsed, isTemporary } = useSidebar();
   return (
@@ -100,27 +132,7 @@ export default function QueriesPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[
-              {
-                label: "Total Queries",
-                value: "8",
-                icon: MessageSquare,
-                color: "slate",
-              },
-              { label: "Pending", value: "3", icon: Clock, color: "amber" },
-              {
-                label: "Answered",
-                value: "2",
-                icon: CheckCircle2,
-                color: "emerald",
-              },
-              {
-                label: "High Priority",
-                value: "2",
-                icon: AlertCircle,
-                color: "red",
-              },
-            ].map((stat, index) => (
+            {STATS_CONFIG.map((stat, index) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
@@ -129,9 +141,9 @@ export default function QueriesPage() {
                 className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <stat.icon size={20} className={`text-${stat.color}-600`} />
+                  <stat.icon size={20} className={stat.iconClass} />
                   <span
-                    className={`text-xs font-semibold px-2 py-1 rounded-full bg-${stat.color}-50 text-${stat.color}-700`}
+                    className={`text-xs font-semibold px-2 py-1 rounded-full ${stat.badgeClass}`}
                   >
                     {stat.value}
                   </span>
@@ -171,13 +183,12 @@ export default function QueriesPage() {
                             {query.subject}
                           </h3>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                              query.priority === "high"
+                            className={`px-2 py-0.5 rounded-full text-xs font-semibold ${query.priority === "high"
                                 ? "bg-red-50 text-red-700"
                                 : query.priority === "medium"
-                                ? "bg-amber-50 text-amber-700"
-                                : "bg-blue-50 text-blue-700"
-                            }`}
+                                  ? "bg-amber-50 text-amber-700"
+                                  : "bg-blue-50 text-blue-700"
+                              }`}
                           >
                             {query.priority}
                           </span>
@@ -191,11 +202,10 @@ export default function QueriesPage() {
                         </p>
                         <div className="flex items-center gap-2">
                           <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                              query.status === "answered"
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${query.status === "answered"
                                 ? "bg-emerald-50 text-emerald-700"
                                 : "bg-amber-50 text-amber-700"
-                            }`}
+                              }`}
                           >
                             {query.status === "answered" ? (
                               <CheckCircle2 size={12} className="mr-1.5" />

@@ -59,6 +59,38 @@ const WASTE_RECORDS = [
   },
 ];
 
+// Stats configuration with explicit Tailwind classes
+const STATS_CONFIG = [
+  {
+    label: "Total Records",
+    value: "12",
+    icon: Recycle,
+    bgClass: "bg-teal-50",
+    textClass: "text-teal-600",
+  },
+  {
+    label: "Available Stock",
+    value: "2",
+    icon: Package,
+    bgClass: "bg-blue-50",
+    textClass: "text-blue-600",
+  },
+  {
+    label: "Total Value",
+    value: "PKR 45K",
+    icon: DollarSign,
+    bgClass: "bg-emerald-50",
+    textClass: "text-emerald-600",
+  },
+  {
+    label: "This Month",
+    value: "+18%",
+    icon: TrendingUp,
+    bgClass: "bg-violet-50",
+    textClass: "text-violet-600",
+  },
+];
+
 export default function WastePage() {
   const { isCollapsed, isTemporary } = useSidebar();
   return (
@@ -69,7 +101,6 @@ export default function WastePage() {
           isCollapsed && !isTemporary ? "80px" : isTemporary ? "0" : "280px",
       }}
     >
-      {" "}
       <div className="w-full max-w-screen">
         <DashboardHeader />
 
@@ -99,32 +130,7 @@ export default function WastePage() {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            {[
-              {
-                label: "Total Records",
-                value: "12",
-                icon: Recycle,
-                color: "teal",
-              },
-              {
-                label: "Available Stock",
-                value: "2",
-                icon: Package,
-                color: "blue",
-              },
-              {
-                label: "Total Value",
-                value: "PKR 45K",
-                icon: DollarSign,
-                color: "emerald",
-              },
-              {
-                label: "This Month",
-                value: "+18%",
-                icon: TrendingUp,
-                color: "violet",
-              },
-            ].map((stat, index) => (
+            {STATS_CONFIG.map((stat, index) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
@@ -134,11 +140,11 @@ export default function WastePage() {
               >
                 <div className="flex items-center justify-between mb-3">
                   <div
-                    className={`w-10 h-10 rounded-xl bg-${stat.color}-50 flex items-center justify-center`}
+                    className={`w-10 h-10 rounded-xl ${stat.bgClass} flex items-center justify-center`}
                   >
                     <stat.icon
                       size={20}
-                      className={`text-${stat.color}-600`}
+                      className={stat.textClass}
                       strokeWidth={2.5}
                     />
                   </div>
@@ -232,18 +238,16 @@ export default function WastePage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                            record.status === "sold"
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${record.status === "sold"
                               ? "bg-emerald-50 text-emerald-700"
                               : "bg-blue-50 text-blue-700"
-                          }`}
+                            }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full mr-2 ${
-                              record.status === "sold"
+                            className={`w-1.5 h-1.5 rounded-full mr-2 ${record.status === "sold"
                                 ? "bg-emerald-500"
                                 : "bg-blue-500"
-                            }`}
+                              }`}
                           />
                           {record.status === "sold" ? "Sold" : "Available"}
                         </span>

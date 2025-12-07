@@ -2,19 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/consultant/DashboardHeader";
-import { Settings, User, Bell, Lock, Save, Loader2, Upload, ChevronDown } from "lucide-react";
+import { Settings, User, Bell, Lock, Save, Loader2, Upload, ChevronDown, MapPin, Briefcase, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { supabase } from "@/lib/supabaseClient";
 import { TagInput } from "@/components/dashboard/consultant/TagInput";
-import { Country, State, City, ICountry, IState, ICity } from 'country-state-city';
+import { Country, State, City, IState, ICity } from 'country-state-city';
 import * as flags from 'country-flag-icons/react/3x2';
-
-const SETTINGS_TABS = [
-  { id: "profile", label: "Profile", icon: User },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "security", label: "Security", icon: Lock },
-];
 
 const SPECIALIZATION_SUGGESTIONS = [
   'Crop Management',
@@ -55,9 +50,48 @@ const parsePhoneNumber = (fullPhone: string): { countryCode: string; phoneNumber
   return { countryCode: '+92', phoneNumber: fullPhone.replace(/\+/g, '') };
 };
 
+// Compact input component
+const FormInput = ({ label, error, children, className = "" }: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div className={className}>
+    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+      {label}
+    </label>
+    {children}
+    {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+  </div>
+);
+
+// Section card component
+const SectionCard = ({
+  icon: Icon,
+  title,
+  children,
+  iconGradient = "from-emerald-500 to-teal-600"
+}: {
+  icon: React.ElementType;
+  title: string;
+  children: React.ReactNode;
+  iconGradient?: string;
+}) => (
+  <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+    <div className={`bg-gradient-to-r ${iconGradient} px-4 py-2.5 flex items-center gap-2.5`}>
+      <Icon className="text-white" size={16} strokeWidth={2.5} />
+      <h3 className="text-sm font-bold text-white">{title}</h3>
+    </div>
+    <div className="p-4">
+      {children}
+    </div>
+  </div>
+);
+
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("profile");
   const { isCollapsed, isTemporary } = useSidebar();
+  const { refreshProfile: refreshGlobalProfile } = useProfile();
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -89,12 +123,10 @@ export default function SettingsPage() {
   const [avatarPreview, setAvatarPreview] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  // Personal location dropdowns
+  // Location dropdowns
   const countries = Country.getAllCountries();
   const [states, setStates] = useState<IState[]>([]);
   const [cities, setCities] = useState<ICity[]>([]);
-
-  // Service location dropdowns
   const [serviceStates, setServiceStates] = useState<IState[]>([]);
   const [serviceCities, setServiceCities] = useState<ICity[]>([]);
 
@@ -102,7 +134,6 @@ export default function SettingsPage() {
   const selectedCountry = countries.find(c => `+${c.phonecode}` === formData.phoneCountryCode);
   const FlagComponent = selectedCountry ? (flags as any)[selectedCountry.isoCode] : null;
 
-  // Fetch profile data on mount
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -122,61 +153,47 @@ export default function SettingsPage() {
       }
 
       const response = await fetch('/api/consultant/profile', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to load profile');
+        console.error('Profile API Error:', response.status, errorData);
+        throw new Error(errorData.error || `Failed to load profile (${response.status})`);
       }
 
       const { data } = await response.json();
-
       const { countryCode, phoneNumber } = parsePhoneNumber(data.phone);
 
-      // Set up personal location dropdowns
+      // Initialize locations
       const consultantCountry = data.consultant.country || '';
       const consultantState = data.consultant.state || '';
-      const consultantDistrict = data.consultant.district || '';
+      const serviceCountry = data.consultant.service_country || '';
+      const serviceState = data.consultant.service_state || '';
 
-      // Initialize personal location states if country exists
       if (consultantCountry) {
-        const selectedCountry = countries.find(c => c.name === consultantCountry);
-        if (selectedCountry) {
-          const countryStates = State.getStatesOfCountry(selectedCountry.isoCode);
+        const countryObj = countries.find(c => c.name === consultantCountry);
+        if (countryObj) {
+          const countryStates = State.getStatesOfCountry(countryObj.isoCode);
           setStates(countryStates);
-
-          // Initialize cities if state exists
           if (consultantState) {
-            const selectedState = countryStates.find(s => s.name === consultantState);
-            if (selectedState) {
-              const stateCities = City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
-              setCities(stateCities);
+            const stateObj = countryStates.find(s => s.name === consultantState);
+            if (stateObj) {
+              setCities(City.getCitiesOfState(countryObj.isoCode, stateObj.isoCode));
             }
           }
         }
       }
 
-      // Set up service location dropdowns
-      const serviceCountry = data.consultant.service_country || '';
-      const serviceState = data.consultant.service_state || '';
-      const serviceDistrict = data.consultant.service_district || '';
-
-      // Initialize service location states if country exists
       if (serviceCountry) {
-        const selectedServiceCountry = countries.find(c => c.name === serviceCountry);
-        if (selectedServiceCountry) {
-          const serviceCountryStates = State.getStatesOfCountry(selectedServiceCountry.isoCode);
-          setServiceStates(serviceCountryStates);
-
-          // Initialize service cities if state exists
+        const countryObj = countries.find(c => c.name === serviceCountry);
+        if (countryObj) {
+          const countryStates = State.getStatesOfCountry(countryObj.isoCode);
+          setServiceStates(countryStates);
           if (serviceState) {
-            const selectedServiceState = serviceCountryStates.find(s => s.name === serviceState);
-            if (selectedServiceState) {
-              const serviceStateCities = City.getCitiesOfState(selectedServiceCountry.isoCode, selectedServiceState.isoCode);
-              setServiceCities(serviceStateCities);
+            const stateObj = countryStates.find(s => s.name === serviceState);
+            if (stateObj) {
+              setServiceCities(City.getCitiesOfState(countryObj.isoCode, stateObj.isoCode));
             }
           }
         }
@@ -193,17 +210,16 @@ export default function SettingsPage() {
         experience_years: data.consultant.experience_years || 0,
         country: consultantCountry,
         state: consultantState,
-        district: consultantDistrict,
+        district: data.consultant.district || '',
         service_country: serviceCountry,
         service_state: serviceState,
-        service_district: serviceDistrict,
+        service_district: data.consultant.service_district || '',
       });
 
       setAvatarPreview(data.avatar_url || '');
-
-    } catch (error: any) {
-      console.error('Fetch profile error:', error);
-      setErrorMessage(error.message || 'Failed to load profile');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to load profile';
+      setErrorMessage(message);
     } finally {
       setLoading(false);
     }
@@ -211,160 +227,81 @@ export default function SettingsPage() {
 
   const updateField = (field: keyof typeof formData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-
     if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
+      setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
     }
   };
 
-  const handlePhoneCountryCodeChange = (newCode: string) => {
-    setFormData(prev => ({ ...prev, phoneCountryCode: newCode }));
-  };
-
-  // Handle country change
   const handleCountryChange = (countryName: string) => {
-    const selectedCountry = countries.find(c => c.name === countryName);
-    if (selectedCountry) {
-      const countryStates = State.getStatesOfCountry(selectedCountry.isoCode);
-      setStates(countryStates);
+    const country = countries.find(c => c.name === countryName);
+    if (country) {
+      setStates(State.getStatesOfCountry(country.isoCode));
       setCities([]);
       setFormData(prev => ({ ...prev, country: countryName, state: '', district: '' }));
-
-      if (errors.country) {
-        setErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors.country;
-          return newErrors;
-        });
-      }
     }
   };
 
-  // Handle state change
   const handleStateChange = (stateName: string) => {
-    const selectedCountry = countries.find(c => c.name === formData.country);
-    const selectedState = states.find(s => s.name === stateName);
-    if (selectedCountry && selectedState) {
-      const stateCities = City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
-      setCities(stateCities);
-      setFormData(prev => ({ ...prev, state: stateName, district: '' }));
-
-      if (errors.state) {
-        setErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors.state;
-          return newErrors;
-        });
+    const country = countries.find(c => c.name === formData.country);
+    if (country) {
+      const state = states.find(s => s.name === stateName);
+      if (state) {
+        setCities(City.getCitiesOfState(country.isoCode, state.isoCode));
       }
     }
+    setFormData(prev => ({ ...prev, state: stateName, district: '' }));
   };
 
-  // Handle service country change
   const handleServiceCountryChange = (countryName: string) => {
-    const selectedCountry = countries.find(c => c.name === countryName);
-    if (selectedCountry) {
-      const countryStates = State.getStatesOfCountry(selectedCountry.isoCode);
-      setServiceStates(countryStates);
+    const country = countries.find(c => c.name === countryName);
+    if (country) {
+      setServiceStates(State.getStatesOfCountry(country.isoCode));
       setServiceCities([]);
       setFormData(prev => ({ ...prev, service_country: countryName, service_state: '', service_district: '' }));
-
-      if (errors.service_country) {
-        setErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors.service_country;
-          return newErrors;
-        });
-      }
     }
   };
 
-  // Handle service state change
   const handleServiceStateChange = (stateName: string) => {
-    const selectedCountry = countries.find(c => c.name === formData.service_country);
-    const selectedState = serviceStates.find(s => s.name === stateName);
-    if (selectedCountry && selectedState) {
-      const stateCities = City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
-      setServiceCities(stateCities);
-      setFormData(prev => ({ ...prev, service_state: stateName, service_district: '' }));
-
-      if (errors.service_state) {
-        setErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors.service_state;
-          return newErrors;
-        });
+    const country = countries.find(c => c.name === formData.service_country);
+    if (country) {
+      const state = serviceStates.find(s => s.name === stateName);
+      if (state) {
+        setServiceCities(City.getCitiesOfState(country.isoCode, state.isoCode));
       }
     }
+    setFormData(prev => ({ ...prev, service_state: stateName, service_district: '' }));
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      setErrors(prev => ({ ...prev, avatar: 'Please upload a JPG, PNG, or GIF image' }));
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, avatar: 'Image must be smaller than 2MB' }));
-      return;
-    }
-
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
-
-    if (errors.avatar) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.avatar;
-        return newErrors;
-      });
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, avatar: 'File size must be less than 2MB' }));
+        return;
+      }
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
     }
   };
 
-  const uploadAvatar = async (): Promise<string | null> => {
-    if (!avatarFile) return formData.avatar_url;
+  const uploadAvatar = async (userId: string): Promise<string | null> => {
+    if (!avatarFile) return null;
 
     setUploadingAvatar(true);
-
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
       const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
-
-      // Delete old avatar if exists and is from our storage
-      if (formData.avatar_url && formData.avatar_url.includes('avatars')) {
-        const oldPath = formData.avatar_url.split('/avatars/').pop();
-        if (oldPath) {
-          await supabase.storage.from('avatars').remove([oldPath]);
-        }
-      }
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, avatarFile, {
-          cacheControl: '3600',
-          upsert: true
-        });
+        .upload(filePath, avatarFile, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
       return publicUrl;
-
-    } catch (error: any) {
-      console.error('Avatar upload error:', error);
+    } catch (error: unknown) {
       setErrors(prev => ({ ...prev, avatar: 'Failed to upload avatar' }));
       return null;
     } finally {
@@ -372,39 +309,42 @@ export default function SettingsPage() {
     }
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.full_name.trim()) newErrors.full_name = 'Full name is required';
+    if (!formData.qualification.trim()) newErrors.qualification = 'Qualification is required';
+    if (formData.specialization_areas.length === 0) newErrors.specialization_areas = 'At least one specialization is required';
+    if (formData.experience_years < 0 || formData.experience_years > 100) newErrors.experience_years = 'Invalid experience years';
+    if (!formData.country) newErrors.country = 'Country is required';
+    if (!formData.state) newErrors.state = 'State is required';
+    if (!formData.district) newErrors.district = 'District is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSave = async () => {
+    if (!validateForm()) return;
+
     setSaving(true);
-    setErrors({});
-    setSuccessMessage('');
     setErrorMessage('');
+    setSuccessMessage('');
 
     try {
-      // 1. Upload avatar if changed
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
       let avatarUrl = formData.avatar_url;
       if (avatarFile) {
-        const uploadedUrl = await uploadAvatar();
-        if (!uploadedUrl) {
-          setSaving(false);
-          return;
-        }
-        avatarUrl = uploadedUrl;
+        const uploadedUrl = await uploadAvatar(session.user.id);
+        if (uploadedUrl) avatarUrl = uploadedUrl;
       }
-
-      // 2. Get session token
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session) {
-        throw new Error('Please sign in to continue');
-      }
-
-      // 3. Prepare request body
-      const fullPhone = formData.phoneNumber
-        ? `${formData.phoneCountryCode}${formData.phoneNumber}`
-        : '';
 
       const requestBody = {
         full_name: formData.full_name,
-        email: formData.email,
-        phone: fullPhone,
+        email: formData.email, // Required by API
+        phone: formData.phoneNumber ? `${formData.phoneCountryCode}${formData.phoneNumber}` : null,
         avatar_url: avatarUrl,
         qualification: formData.qualification,
         specialization_areas: formData.specialization_areas,
@@ -412,12 +352,12 @@ export default function SettingsPage() {
         country: formData.country,
         state: formData.state,
         district: formData.district,
-        service_country: formData.service_country,
-        service_state: formData.service_state,
-        service_district: formData.service_district,
+        service_country: formData.service_country || null,
+        service_state: formData.service_state || null,
+        service_district: formData.service_district || null,
       };
+      console.log('Sending profile update:', requestBody);
 
-      // 4. Call API
       const response = await fetch('/api/consultant/profile', {
         method: 'PUT',
         headers: {
@@ -428,650 +368,380 @@ export default function SettingsPage() {
       });
 
       const result = await response.json();
+      console.log('API Response:', response.status, result);
 
       if (!response.ok) {
         if (result.errors) {
+          console.log('Validation errors:', result.errors);
           setErrors(result.errors);
         }
         throw new Error(result.error || 'Failed to update profile');
       }
 
-      // 5. Success
-      setSuccessMessage('Profile updated successfully!');
+      setSuccessMessage('Settings saved successfully!');
       setAvatarFile(null);
-
-      setTimeout(() => setSuccessMessage(''), 5000);
+      setTimeout(() => setSuccessMessage(''), 4000);
 
       await fetchProfile();
-
-    } catch (error: any) {
-      console.error('Save error:', error);
-      setErrorMessage(error.message || 'Failed to update profile');
+      await refreshGlobalProfile();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update profile';
+      setErrorMessage(message);
     } finally {
       setSaving(false);
     }
   };
 
+  const inputClass = (hasError: boolean) =>
+    `w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-all ${hasError
+      ? 'border-red-300 focus:border-red-400 focus:ring-red-200'
+      : 'border-slate-200 focus:border-emerald-400 focus:ring-emerald-100 hover:border-slate-300'
+    }`;
+
+  const selectClass = (hasError: boolean, disabled: boolean = false) =>
+    `${inputClass(hasError)} appearance-none bg-slate-50 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-100'}`;
+
+  if (loading) {
+    return (
+      <main
+        className="flex-1 transition-all duration-300"
+        style={{ marginLeft: isCollapsed && !isTemporary ? "80px" : isTemporary ? "0" : "280px" }}
+      >
+        <DashboardHeader />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-3" />
+            <p className="text-slate-500 text-sm">Loading settings...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main
       className="flex-1 transition-all duration-300"
-      style={{
-        marginLeft:
-          isCollapsed && !isTemporary ? "80px" : isTemporary ? "0" : "280px",
-      }}
+      style={{ marginLeft: isCollapsed && !isTemporary ? "80px" : isTemporary ? "0" : "280px" }}
     >
       <div className="w-full">
         <DashboardHeader />
 
-        <div className="flex flex-col gap-4 md:gap-6 lg:gap-8 w-full p-5 md:p-7 lg:p-9 max-w-dvw">
-          {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl flex items-center justify-center shadow-lg shadow-slate-200">
-                <Settings className="text-white" size={24} strokeWidth={2.5} />
+        <div className="p-4 md:p-6 max-w-5xl mx-auto">
+          {/* Compact Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl flex items-center justify-center shadow-lg">
+                <Settings className="text-white" size={18} />
               </div>
-              Settings
-            </h1>
-            <p className="text-slate-500">
-              Manage your account settings and preferences
-            </p>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">Settings</h1>
+                <p className="text-xs text-slate-500">Manage your profile and preferences</p>
+              </div>
+            </div>
+            <motion.button
+              onClick={handleSave}
+              disabled={saving}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold text-sm shadow-lg shadow-emerald-200 hover:shadow-xl transition-all disabled:opacity-50 flex items-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save size={16} />
+                  Save Changes
+                </>
+              )}
+            </motion.button>
           </div>
 
-          {/* Success Banner */}
+          {/* Status Messages */}
           <AnimatePresence>
-            {successMessage && (
+            {(successMessage || errorMessage) && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl"
+                className={`mb-4 p-3 rounded-lg text-sm font-medium flex items-center gap-2 ${successMessage ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}
               >
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                  <p className="text-sm font-medium text-emerald-700">
-                    {successMessage}
-                  </p>
-                </div>
+                <div className={`w-1.5 h-1.5 rounded-full ${successMessage ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                {successMessage || errorMessage}
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Error Banner */}
-          <AnimatePresence>
-            {errorMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="p-4 bg-red-50 border border-red-200 rounded-xl"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-                  <p className="text-sm font-medium text-red-700">{errorMessage}</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar Tabs */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-2">
-                {SETTINGS_TABS.map((tab) => (
-                  <motion.button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all mb-1 ${
-                      activeTab === tab.id
-                        ? "bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 font-semibold shadow-sm border border-emerald-100"
-                        : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <tab.icon
-                      size={20}
-                      strokeWidth={activeTab === tab.id ? 2.5 : 2}
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Left Column - Profile Card */}
+            <div className="lg:col-span-1 space-y-4">
+              {/* Avatar Card */}
+              <SectionCard icon={User} title="Profile Photo">
+                <div className="flex flex-col items-center text-center">
+                  <div className="relative mb-3">
+                    <img
+                      src={avatarPreview || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80"}
+                      alt="Profile"
+                      className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
                     />
-                    <span className="text-sm">{tab.label}</span>
-                  </motion.button>
-                ))}
+                    <label
+                      htmlFor="avatar-upload"
+                      className="absolute -bottom-1 -right-1 w-7 h-7 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform"
+                    >
+                      {uploadingAvatar ? (
+                        <Loader2 size={12} className="text-white animate-spin" />
+                      ) : (
+                        <Upload size={12} className="text-white" />
+                      )}
+                    </label>
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500">JPG, PNG or GIF • Max 2MB</p>
+                  {errors.avatar && <p className="text-xs text-red-500 mt-1">{errors.avatar}</p>}
+                </div>
+              </SectionCard>
+
+              {/* Quick Stats */}
+              <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 text-white">
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Profile Completion</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Basic Info</span>
+                    <span className="text-emerald-400">✓</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Professional</span>
+                    <span className="text-emerald-400">✓</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Location</span>
+                    <span className="text-emerald-400">✓</span>
+                  </div>
+                </div>
+                <div className="mt-3 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-full w-4/5 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full" />
+                </div>
               </div>
             </div>
 
-            {/* Content Area */}
-            <div className="lg:col-span-3">
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-8">
-                {loading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-2" />
-                      <p className="text-slate-500 text-sm">Loading profile...</p>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {activeTab === "profile" && (
-                      <div>
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">
-                          Profile Information
-                        </h2>
+            {/* Right Column - Forms */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Personal Information */}
+              <SectionCard icon={User} title="Personal Information">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormInput label="Full Name *" error={errors.full_name}>
+                    <input
+                      type="text"
+                      value={formData.full_name}
+                      onChange={(e) => updateField('full_name', e.target.value)}
+                      className={inputClass(!!errors.full_name)}
+                      placeholder="John Doe"
+                    />
+                  </FormInput>
 
-                        {/* Avatar Section */}
-                        <div className="space-y-6">
-                          <div className="flex items-center gap-6 pb-6 border-b border-slate-100">
-                            <img
-                              src={avatarPreview || "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80"}
-                              alt="Profile"
-                              className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
-                            />
-                            <div>
-                              <label htmlFor="avatar-upload">
-                                <motion.div
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-semibold text-sm shadow-lg shadow-emerald-200 hover:shadow-xl transition-all cursor-pointer inline-flex items-center gap-2"
-                                >
-                                  {uploadingAvatar ? (
-                                    <>
-                                      <Loader2 size={16} className="animate-spin" />
-                                      Uploading...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload size={16} />
-                                      Change Photo
-                                    </>
-                                  )}
-                                </motion.div>
-                              </label>
-                              <input
-                                id="avatar-upload"
-                                type="file"
-                                accept="image/jpeg,image/png,image/gif"
-                                onChange={handleAvatarChange}
-                                className="hidden"
-                              />
-                              <p className="text-xs text-slate-500 mt-2">
-                                JPG, PNG or GIF. Max size 2MB
-                              </p>
-                              {errors.avatar && (
-                                <p className="text-xs text-red-600 mt-1 font-medium">
-                                  {errors.avatar}
-                                </p>
-                              )}
-                            </div>
-                          </div>
+                  <FormInput label="Email Address">
+                    <input
+                      type="email"
+                      value={formData.email}
+                      disabled
+                      className={`${inputClass(false)} bg-slate-100 cursor-not-allowed`}
+                    />
+                  </FormInput>
 
-                          {/* Personal Information Fields */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                Full Name *
-                              </label>
-                              <input
-                                type="text"
-                                value={formData.full_name}
-                                onChange={(e) => updateField('full_name', e.target.value)}
-                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
-                                  errors.full_name
-                                    ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20'
-                                    : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500'
-                                }`}
-                              />
-                              {errors.full_name && (
-                                <p className="text-xs text-red-600 mt-1 font-medium">
-                                  {errors.full_name}
-                                </p>
-                              )}
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                Email Address *
-                              </label>
-                              <input
-                                type="email"
-                                value={formData.email}
-                                disabled
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-100 text-slate-600 cursor-not-allowed"
-                              />
-                              <p className="text-xs text-slate-500 mt-1">
-                                Email cannot be changed for security reasons
-                              </p>
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                Phone Number
-                              </label>
-                              <div className={`flex w-full rounded-xl transition-all ${
-                                errors.phone ? 'border border-red-300 bg-red-50/50' : 'border border-slate-200'
-                              }`}>
-                                {/* Country Code Selector */}
-                                <div className="relative border-r border-slate-200/60 shrink-0">
-                                  <div className="absolute inset-0 flex items-center pl-3 pointer-events-none">
-                                    {FlagComponent && (
-                                      <FlagComponent className="rounded-[2px] shadow-sm" style={{ width: '20px', height: 'auto' }} />
-                                    )}
-                                  </div>
-                                  <select
-                                    value={formData.phoneCountryCode}
-                                    onChange={(e) => handlePhoneCountryCodeChange(e.target.value)}
-                                    className="h-full bg-transparent text-xs font-semibold text-slate-700 rounded-l-xl py-3 pl-10 pr-7 focus:outline-none appearance-none cursor-pointer"
-                                  >
-                                    {countries.map((country) => (
-                                      <option key={country.isoCode} value={`+${country.phonecode}`}>
-                                        +{country.phonecode}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-
-                                {/* Phone Number Input */}
-                                <input
-                                  type="tel"
-                                  value={formData.phoneNumber}
-                                  onChange={(e) => updateField('phoneNumber', e.target.value.replace(/\D/g, '').slice(0, 15))}
-                                  placeholder="3001234567"
-                                  maxLength={15}
-                                  className="flex-1 min-w-0 px-4 py-3 bg-transparent border-none focus:ring-0 focus:outline-none placeholder:text-slate-300 rounded-r-xl"
-                                />
-                              </div>
-                              {errors.phone && (
-                                <p className="text-xs text-red-600 mt-1 font-medium">
-                                  {errors.phone}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Professional Information Section */}
-                          <div className="pt-6 border-t border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-900 mb-4">
-                              Professional Details
-                            </h3>
-
-                            <div className="space-y-6">
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Qualification *
-                                </label>
-                                <input
-                                  type="text"
-                                  value={formData.qualification}
-                                  onChange={(e) => updateField('qualification', e.target.value)}
-                                  placeholder="e.g., MSc Agriculture"
-                                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
-                                    errors.qualification
-                                      ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20'
-                                      : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500'
-                                  }`}
-                                />
-                                {errors.qualification && (
-                                  <p className="text-xs text-red-600 mt-1 font-medium">
-                                    {errors.qualification}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Specialization Areas *
-                                </label>
-                                <TagInput
-                                  tags={formData.specialization_areas}
-                                  onChange={(tags) => updateField('specialization_areas', tags)}
-                                  placeholder="Type specialization and press Enter..."
-                                  suggestions={SPECIALIZATION_SUGGESTIONS}
-                                  error={errors.specialization_areas}
-                                />
-                              </div>
-
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Years of Experience *
-                                </label>
-                                <input
-                                  type="number"
-                                  value={formData.experience_years}
-                                  onChange={(e) => updateField('experience_years', parseInt(e.target.value) || 0)}
-                                  min={0}
-                                  max={100}
-                                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
-                                    errors.experience_years
-                                      ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20'
-                                      : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500'
-                                  }`}
-                                />
-                                {errors.experience_years && (
-                                  <p className="text-xs text-red-600 mt-1 font-medium">
-                                    {errors.experience_years}
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* Country Dropdown */}
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Country *
-                                </label>
-                                <div className="relative">
-                                  <select
-                                    value={formData.country}
-                                    onChange={(e) => handleCountryChange(e.target.value)}
-                                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all appearance-none ${
-                                      errors.country
-                                        ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20'
-                                        : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50 hover:bg-slate-100'
-                                    }`}
-                                  >
-                                    <option value="">Select Country</option>
-                                    {countries.map((country) => (
-                                      <option key={country.isoCode} value={country.name}>
-                                        {country.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                </div>
-                                {errors.country && (
-                                  <p className="text-xs text-red-600 mt-1 font-medium">
-                                    {errors.country}
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* State Dropdown */}
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  State/Province *
-                                </label>
-                                <div className="relative">
-                                  <select
-                                    value={formData.state}
-                                    onChange={(e) => handleStateChange(e.target.value)}
-                                    disabled={!formData.country}
-                                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all appearance-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed ${
-                                      errors.state
-                                        ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20'
-                                        : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50 hover:bg-slate-100'
-                                    }`}
-                                  >
-                                    <option value="">Select State</option>
-                                    {states.map((state) => (
-                                      <option key={state.isoCode} value={state.name}>
-                                        {state.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                </div>
-                                {errors.state && (
-                                  <p className="text-xs text-red-600 mt-1 font-medium">
-                                    {errors.state}
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* District Dropdown */}
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  District/City *
-                                </label>
-                                <div className="relative">
-                                  <select
-                                    value={formData.district}
-                                    onChange={(e) => updateField('district', e.target.value)}
-                                    disabled={!formData.state}
-                                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all appearance-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed ${
-                                      errors.district
-                                        ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20'
-                                        : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50 hover:bg-slate-100'
-                                    }`}
-                                  >
-                                    <option value="">Select District</option>
-                                    {cities.map((city) => (
-                                      <option key={city.name} value={city.name}>
-                                        {city.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                </div>
-                                {errors.district && (
-                                  <p className="text-xs text-red-600 mt-1 font-medium">
-                                    {errors.district}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Service Location Section */}
-                          <div className="pt-6 border-t border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">
-                              Service Location
-                            </h3>
-                            <p className="text-sm text-slate-500 mb-4">
-                              Where do you provide your consultation services? (This can be different from your personal location)
-                            </p>
-
-                            <div className="space-y-6">
-                              {/* Service Country Dropdown */}
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Service Country
-                                </label>
-                                <div className="relative">
-                                  <select
-                                    value={formData.service_country}
-                                    onChange={(e) => handleServiceCountryChange(e.target.value)}
-                                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all appearance-none ${
-                                      errors.service_country
-                                        ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20'
-                                        : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50 hover:bg-slate-100'
-                                    }`}
-                                  >
-                                    <option value="">Select Service Country</option>
-                                    {countries.map((country) => (
-                                      <option key={country.isoCode} value={country.name}>
-                                        {country.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                </div>
-                                {errors.service_country && (
-                                  <p className="text-xs text-red-600 mt-1 font-medium">
-                                    {errors.service_country}
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* Service State Dropdown */}
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Service State/Province
-                                </label>
-                                <div className="relative">
-                                  <select
-                                    value={formData.service_state}
-                                    onChange={(e) => handleServiceStateChange(e.target.value)}
-                                    disabled={!formData.service_country}
-                                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all appearance-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed ${
-                                      errors.service_state
-                                        ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20'
-                                        : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50 hover:bg-slate-100'
-                                    }`}
-                                  >
-                                    <option value="">Select Service State</option>
-                                    {serviceStates.map((state) => (
-                                      <option key={state.isoCode} value={state.name}>
-                                        {state.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                </div>
-                                {errors.service_state && (
-                                  <p className="text-xs text-red-600 mt-1 font-medium">
-                                    {errors.service_state}
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* Service District Dropdown */}
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                  Service District/City
-                                </label>
-                                <div className="relative">
-                                  <select
-                                    value={formData.service_district}
-                                    onChange={(e) => updateField('service_district', e.target.value)}
-                                    disabled={!formData.service_state}
-                                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all appearance-none disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed ${
-                                      errors.service_district
-                                        ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20'
-                                        : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50 hover:bg-slate-100'
-                                    }`}
-                                  >
-                                    <option value="">Select Service District</option>
-                                    {serviceCities.map((city) => (
-                                      <option key={city.name} value={city.name}>
-                                        {city.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                </div>
-                                {errors.service_district && (
-                                  <p className="text-xs text-red-600 mt-1 font-medium">
-                                    {errors.service_district}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                  <FormInput label="Phone Number" error={errors.phone} className="sm:col-span-2">
+                    <div className="flex rounded-lg border border-slate-200 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-100 focus-within:border-emerald-400">
+                      <div className="relative border-r border-slate-200 bg-slate-50 shrink-0">
+                        <div className="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
+                          {FlagComponent && <FlagComponent className="rounded-[2px]" style={{ width: '18px' }} />}
                         </div>
-                      </div>
-                    )}
-
-                    {activeTab === "notifications" && (
-                      <div>
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">
-                          Notification Preferences
-                        </h2>
-                        <div className="space-y-6">
-                          {[
-                            {
-                              label: "Email Notifications",
-                              desc: "Receive email updates about your account activity",
-                            },
-                            {
-                              label: "New Query Alerts",
-                              desc: "Get notified when farmers submit new queries",
-                            },
-                            {
-                              label: "Waste Record Updates",
-                              desc: "Updates on waste records and marketplace activity",
-                            },
-                            {
-                              label: "Expert Recommendations",
-                              desc: "Notifications when expert consultations are recommended",
-                            },
-                          ].map((item, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center justify-between p-4 bg-slate-50 rounded-xl"
-                            >
-                              <div>
-                                <p className="font-semibold text-slate-900">
-                                  {item.label}
-                                </p>
-                                <p className="text-sm text-slate-500">
-                                  {item.desc}
-                                </p>
-                              </div>
-                              <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  className="sr-only peer"
-                                  defaultChecked
-                                />
-                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-emerald-600 peer-checked:to-teal-600"></div>
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {activeTab === "security" && (
-                      <div>
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">
-                          Security Settings
-                        </h2>
-                        <div className="space-y-6">
-                          <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
-                              Current Password
-                            </label>
-                            <input
-                              type="password"
-                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
-                              New Password
-                            </label>
-                            <input
-                              type="password"
-                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
-                              Confirm New Password
-                            </label>
-                            <input
-                              type="password"
-                              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Save Button */}
-                    {activeTab === "profile" && (
-                      <div className="mt-8 pt-6 border-t border-slate-100">
-                        <motion.button
-                          onClick={handleSave}
-                          disabled={saving || loading}
-                          whileHover={saving || loading ? {} : { scale: 1.02 }}
-                          whileTap={saving || loading ? {} : { scale: 0.98 }}
-                          className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-emerald-200 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        <select
+                          value={formData.phoneCountryCode}
+                          onChange={(e) => updateField('phoneCountryCode', e.target.value)}
+                          className="h-full bg-transparent text-xs font-semibold text-slate-700 py-2 pl-8 pr-6 appearance-none cursor-pointer focus:outline-none"
                         >
-                          {saving ? (
-                            <>
-                              <Loader2 size={20} className="animate-spin" strokeWidth={2.5} />
-                              Saving Changes...
-                            </>
-                          ) : (
-                            <>
-                              <Save size={20} strokeWidth={2.5} />
-                              Save Changes
-                            </>
-                          )}
-                        </motion.button>
+                          {countries.map((c) => (
+                            <option key={c.isoCode} value={`+${c.phonecode}`}>+{c.phonecode}</option>
+                          ))}
+                        </select>
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
+                      <input
+                        type="tel"
+                        value={formData.phoneNumber}
+                        onChange={(e) => updateField('phoneNumber', e.target.value.replace(/\D/g, '').slice(0, 15))}
+                        placeholder="3001234567"
+                        className="flex-1 px-3 py-2 text-sm focus:outline-none"
+                      />
+                    </div>
+                  </FormInput>
+                </div>
+              </SectionCard>
+
+              {/* Professional Details */}
+              <SectionCard icon={Briefcase} title="Professional Details" iconGradient="from-blue-500 to-indigo-600">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormInput label="Qualification *" error={errors.qualification}>
+                    <input
+                      type="text"
+                      value={formData.qualification}
+                      onChange={(e) => updateField('qualification', e.target.value)}
+                      className={inputClass(!!errors.qualification)}
+                      placeholder="MSc Agriculture"
+                    />
+                  </FormInput>
+
+                  <FormInput label="Experience (Years) *" error={errors.experience_years}>
+                    <input
+                      type="number"
+                      value={formData.experience_years}
+                      onChange={(e) => updateField('experience_years', parseInt(e.target.value) || 0)}
+                      min={0}
+                      max={100}
+                      className={inputClass(!!errors.experience_years)}
+                    />
+                  </FormInput>
+
+                  <FormInput label="Specialization Areas *" error={errors.specialization_areas} className="sm:col-span-2">
+                    <TagInput
+                      tags={formData.specialization_areas}
+                      onChange={(tags) => updateField('specialization_areas', tags)}
+                      placeholder="Type and press Enter..."
+                      suggestions={SPECIALIZATION_SUGGESTIONS}
+                      error={errors.specialization_areas}
+                    />
+                  </FormInput>
+                </div>
+              </SectionCard>
+
+              {/* Location */}
+              <SectionCard icon={MapPin} title="Your Location" iconGradient="from-rose-500 to-pink-600">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <FormInput label="Country *" error={errors.country}>
+                    <div className="relative">
+                      <select
+                        value={formData.country}
+                        onChange={(e) => handleCountryChange(e.target.value)}
+                        className={selectClass(!!errors.country)}
+                      >
+                        <option value="">Select</option>
+                        {countries.map((c) => <option key={c.isoCode} value={c.name}>{c.name}</option>)}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                  </FormInput>
+
+                  <FormInput label="State/Province *" error={errors.state}>
+                    <div className="relative">
+                      <select
+                        value={formData.state}
+                        onChange={(e) => handleStateChange(e.target.value)}
+                        disabled={!formData.country}
+                        className={selectClass(!!errors.state, !formData.country)}
+                      >
+                        <option value="">Select</option>
+                        {states.map((s) => <option key={s.isoCode} value={s.name}>{s.name}</option>)}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                  </FormInput>
+
+                  <FormInput label="District/City *" error={errors.district}>
+                    <div className="relative">
+                      <select
+                        value={formData.district}
+                        onChange={(e) => updateField('district', e.target.value)}
+                        disabled={!formData.state}
+                        className={selectClass(!!errors.district, !formData.state)}
+                      >
+                        <option value="">Select</option>
+                        {cities.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                  </FormInput>
+                </div>
+              </SectionCard>
+
+              {/* Service Location */}
+              <SectionCard icon={Globe} title="Service Location (Optional)" iconGradient="from-violet-500 to-purple-600">
+                <p className="text-xs text-slate-500 mb-3">Where you provide consultation services</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <FormInput label="Country">
+                    <div className="relative">
+                      <select
+                        value={formData.service_country}
+                        onChange={(e) => handleServiceCountryChange(e.target.value)}
+                        className={selectClass(false)}
+                      >
+                        <option value="">Select</option>
+                        {countries.map((c) => <option key={c.isoCode} value={c.name}>{c.name}</option>)}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                  </FormInput>
+
+                  <FormInput label="State/Province">
+                    <div className="relative">
+                      <select
+                        value={formData.service_state}
+                        onChange={(e) => handleServiceStateChange(e.target.value)}
+                        disabled={!formData.service_country}
+                        className={selectClass(false, !formData.service_country)}
+                      >
+                        <option value="">Select</option>
+                        {serviceStates.map((s) => <option key={s.isoCode} value={s.name}>{s.name}</option>)}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                  </FormInput>
+
+                  <FormInput label="District/City">
+                    <div className="relative">
+                      <select
+                        value={formData.service_district}
+                        onChange={(e) => updateField('service_district', e.target.value)}
+                        disabled={!formData.service_state}
+                        className={selectClass(false, !formData.service_state)}
+                      >
+                        <option value="">Select</option>
+                        {serviceCities.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                  </FormInput>
+                </div>
+              </SectionCard>
+
+              {/* Notification Preferences */}
+              <SectionCard icon={Bell} title="Notifications" iconGradient="from-amber-500 to-orange-600">
+                <div className="space-y-2.5">
+                  {[
+                    { label: "Email Notifications", desc: "Account activity updates" },
+                    { label: "New Query Alerts", desc: "When farmers submit queries" },
+                    { label: "Waste Record Updates", desc: "Marketplace activity" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">{item.label}</p>
+                        <p className="text-xs text-slate-500">{item.desc}</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" defaultChecked />
+                        <div className="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-emerald-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-emerald-500 peer-checked:to-teal-500" />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
             </div>
           </div>
         </div>
