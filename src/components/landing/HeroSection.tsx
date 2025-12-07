@@ -133,16 +133,18 @@ export const HeroSection = () => {
                         transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] as any }}
                         className="flex flex-wrap items-center gap-4"
                     >
-                        <Button
-                            variant="premium"
-                            rounded="full"
-                            size="xl"
-                            className="px-8 py-4 shadow-xl shadow-emerald-900/20 hover:shadow-2xl hover:shadow-emerald-900/30"
-                            icon={<ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
-                            iconPosition="right"
-                        >
-                            Get Started Now
-                        </Button>
+                        <Link href="/signup">
+                            <Button
+                                variant="premium"
+                                rounded="full"
+                                size="xl"
+                                className="px-8 py-4 shadow-xl shadow-emerald-900/20 hover:shadow-2xl hover:shadow-emerald-900/30"
+                                icon={<ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
+                                iconPosition="right"
+                            >
+                                Get Started Now
+                            </Button>
+                        </Link>
 
                         {/* Updated Button: Soil Analysis */}
                         <Link href="/soil-analysis">

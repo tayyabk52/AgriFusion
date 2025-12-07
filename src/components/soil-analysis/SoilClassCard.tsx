@@ -37,56 +37,77 @@ export const SoilClassCard: React.FC<SoilClassCardProps> = ({
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 5 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            whileHover={{ scale: 1.02, y: -2 }}
             transition={{
-                duration: 0.2,
-                delay: index * 0.03,
+                duration: 0.25,
+                delay: index * 0.04,
+                ease: [0.22, 1, 0.36, 1],
             }}
             className={cn(
-                'group relative flex items-center gap-2.5 rounded-lg border p-2.5 transition-all duration-150',
+                'group relative flex items-center gap-3 rounded-xl border p-3 transition-all duration-200 min-h-[56px]',
                 isTopPrediction
-                    ? 'bg-emerald-50/60 border-emerald-200'
-                    : 'bg-white border-slate-100 hover:border-emerald-100'
+                    ? 'bg-gradient-to-br from-emerald-50 to-teal-50/30 border-emerald-200/60 shadow-sm shadow-emerald-100/50'
+                    : 'bg-white border-slate-200 hover:border-emerald-200 hover:shadow-md hover:shadow-slate-100/50'
             )}
         >
-            <div
+            <motion.div
+                whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+                transition={{ duration: 0.5 }}
                 className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-lg text-base shrink-0',
-                    isTopPrediction ? 'bg-emerald-100' : 'bg-slate-50'
+                    'flex h-10 w-10 items-center justify-center rounded-xl text-lg shrink-0 transition-colors',
+                    isTopPrediction
+                        ? 'bg-white shadow-sm border border-emerald-100'
+                        : 'bg-slate-50 group-hover:bg-slate-100'
                 )}
             >
                 {getSoilIcon(soilType)}
-            </div>
+            </motion.div>
 
             <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
                     <h3
                         className={cn(
-                            'text-xs font-semibold capitalize truncate',
-                            isTopPrediction ? 'text-emerald-900' : 'text-slate-700'
+                            'text-sm font-bold capitalize truncate tracking-tight',
+                            isTopPrediction ? 'text-emerald-900' : 'text-slate-800'
                         )}
                     >
                         {soilType.replace(/_/g, ' ')}
                     </h3>
                     {isTopPrediction && (
-                        <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
+                        <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                        >
+                            <CheckCircle2 size={14} className="text-emerald-600 shrink-0" strokeWidth={2.5} />
+                        </motion.div>
                     )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                <div className="flex items-center gap-2.5">
+                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${probability * 100}%` }}
-                            transition={{ duration: 0.5, delay: index * 0.03 }}
+                            transition={{
+                                duration: 0.6,
+                                delay: index * 0.04,
+                                ease: [0.22, 1, 0.36, 1]
+                            }}
                             className={cn(
                                 'h-full rounded-full',
-                                isTopPrediction ? 'bg-emerald-500' : 'bg-slate-300'
+                                isTopPrediction
+                                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                                    : 'bg-slate-400'
                             )}
                         />
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500 shrink-0">
+                    <span className={cn(
+                        "text-xs font-bold shrink-0 tabular-nums",
+                        isTopPrediction ? 'text-emerald-700' : 'text-slate-600'
+                    )}>
                         {percentage}%
                     </span>
                 </div>
