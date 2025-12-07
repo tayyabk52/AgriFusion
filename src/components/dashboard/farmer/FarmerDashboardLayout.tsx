@@ -1,42 +1,26 @@
 "use client";
 
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { FarmerSidebar } from "./FarmerSidebar";
 import { FarmerDashboardHeader } from "./FarmerDashboardHeader";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 interface FarmerDashboardLayoutProps {
   children: ReactNode;
-  farmerName?: string;
-  farmerEmail?: string;
-  avatarUrl?: string;
-  isVerified?: boolean;
 }
 
 export function FarmerDashboardLayout({
   children,
-  farmerName = "Farmer",
-  farmerEmail,
-  avatarUrl,
-  isVerified = false,
 }: FarmerDashboardLayoutProps) {
-  // Initialize sidebar as collapsed on mobile/tablet (< 1280px)
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth < 1280;
-    }
-    return true; // Default to collapsed for SSR
-  });
+  const { isCollapsed } = useSidebar();
 
   return (
     <>
       <ProgressBar />
       <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex">
-        <FarmerSidebar
-          isCollapsed={isCollapsed}
-          setIsCollapsed={setIsCollapsed}
-        />
+        <FarmerSidebar />
 
         <motion.main
           initial={false}
@@ -48,12 +32,7 @@ export function FarmerDashboardLayout({
           style={{ minHeight: "100vh" }}
         >
           <div className="w-full">
-            <FarmerDashboardHeader
-              farmerName={farmerName}
-              farmerEmail={farmerEmail}
-              avatarUrl={avatarUrl}
-              isVerified={isVerified}
-            />
+            <FarmerDashboardHeader />
             {children}
           </div>
         </motion.main>

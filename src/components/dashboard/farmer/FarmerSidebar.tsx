@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabaseClient';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/farmer', badge: null },
@@ -27,14 +28,10 @@ const menuItems = [
     { icon: Users, label: 'My Consultant', href: '/dashboard/farmer/consultant', badge: null },
 ];
 
-interface FarmerSidebarProps {
-    isCollapsed: boolean;
-    setIsCollapsed: (collapsed: boolean) => void;
-}
-
-export function FarmerSidebar({ isCollapsed, setIsCollapsed }: FarmerSidebarProps) {
+export function FarmerSidebar() {
     const pathname = usePathname();
     const router = useRouter();
+    const { isCollapsed, setIsCollapsed } = useSidebar();
     const [showContactConfirm, setShowContactConfirm] = useState(false);
 
     const handleContactRedirect = () => {

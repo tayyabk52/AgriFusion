@@ -13,6 +13,7 @@ interface Profile {
     phone?: string;
     avatar_url?: string;
     status: string;
+    is_verified?: boolean;
 }
 
 interface Notification {
@@ -83,6 +84,76 @@ export function ProfileProvider({ children, requiredRole = 'consultant' }: Profi
             subscription.unsubscribe();
         };
     }, []);
+
+    // Real-time notifications subscription
+    useEffect(() => {
+        if (!profile) return;
+
+        // Subscribe to new notifications for this user
+        const channel = supabase
+            .channel(`notifications:${profile.id}`) // Unique channel per user
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: `recipient_id=eq.${profile.id}`,
+                },
+                (payload) => {
+                    console.log('🔔 New notification received:', payload.new);
+                    // Add new notification to the beginning of the list
+                    setNotifications((prev) => [payload.new as Notification, ...prev.slice(0, 9)]);
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: `recipient_id=eq.${profile.id}`,
+                },
+                (payload) => {
+                    console.log('📝 Notification updated:', payload.new);
+                    // Update the notification in the list
+                    setNotifications((prev) =>
+                        prev.map((n) => (n.id === payload.new.id ? (payload.new as Notification) : n))
+                    );
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: 'DELETE',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: `recipient_id=eq.${profile.id}`,
+                },
+                (payload) => {
+                    console.log('🗑️ Notification deleted:', payload.old);
+                    // Remove the notification from the list
+                    setNotifications((prev) => prev.filter((n) => n.id !== payload.old.id));
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ Real-time notifications connected');
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error('❌ Real-time notifications connection error');
+                } else if (status === 'TIMED_OUT') {
+                    console.error('⏱️ Real-time notifications connection timed out');
+                } else if (status === 'CLOSED') {
+                    console.log('🔌 Real-time notifications connection closed');
+                }
+            });
+
+        // Cleanup channel on unmount or profile change
+        return () => {
+            console.log('🔌 Unsubscribing from notifications channel');
+            supabase.removeChannel(channel);
+        };
+    }, [profile]);
 
     const fetchProfileData = async () => {
         try {

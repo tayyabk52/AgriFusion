@@ -318,7 +318,7 @@ export const DashboardHeader = () => {
                                             <button
                                                 onClick={() => {
                                                     setIsNotificationsOpen(false);
-                                                    // Navigate to notifications page if exists
+                                                    router.push('/dashboard/consultant/notifications');
                                                 }}
                                                 className="w-full py-2.5 text-xs font-semibold text-slate-600 hover:text-emerald-600 hover:bg-white rounded-lg transition-all"
                                             >

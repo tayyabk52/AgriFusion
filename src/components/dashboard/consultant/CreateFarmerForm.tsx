@@ -8,6 +8,9 @@ import { validateEmail, validatePhone, validatePassword } from '@/lib/validation
 import { CropTagInput } from './CropTagInput';
 import { Country, State, City, ICountry, IState, ICity } from 'country-state-city';
 import * as flags from 'country-flag-icons/react/3x2';
+import { toast } from 'sonner';
+import { NotificationService } from '@/lib/notifications/NotificationService';
+import { BaseNotification } from '@/types/notifications';
 
 interface CreateFarmerFormProps {
   consultantId: string;
@@ -366,6 +369,75 @@ export const CreateFarmerForm: React.FC<CreateFarmerFormProps> = ({
 
       if (statusError) {
         throw new Error(`Failed to activate account: ${statusError.message}`);
+      }
+
+      // Send notifications to both farmer and consultant
+      try {
+        const notificationService = new NotificationService(supabase);
+
+        // Get consultant name
+        const { data: consultantProfile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', consultantId)
+          .single();
+
+        const notifications: BaseNotification[] = [
+          // Notify consultant of new farmer creation
+          {
+            recipient_id: consultantId,
+            type: 'farmer_created',
+            category: 'relationship',
+            priority: 'normal',
+            title: 'Farmer Account Created',
+            message: `New farmer account for ${sanitizedFullName} has been created successfully`,
+            action_url: '/dashboard/consultant/farmers',
+            metadata: { farmer_id: profile.id },
+          },
+          // Notify farmer of account activation
+          {
+            recipient_id: profile.id,
+            type: 'account_activated',
+            category: 'status',
+            priority: 'high',
+            title: 'Account Activated',
+            message: 'Your account is now active. You can log in and start using AgriFusion.',
+            action_url: '/dashboard/farmer',
+          },
+          // Notify farmer of farm setup
+          {
+            recipient_id: profile.id,
+            type: 'farm_setup',
+            category: 'farm',
+            priority: 'normal',
+            title: 'Farm Profile Configured',
+            message: `Your farm details have been set up: ${sanitizedFarmName} - ${formData.landSize} acres`,
+            action_url: '/dashboard/farmer/farm',
+            metadata: {
+              farm_name: sanitizedFarmName,
+              land_size: parseFloat(formData.landSize),
+              crops: sanitizedCrops
+            },
+          },
+          // Notify farmer of consultant assignment
+          {
+            recipient_id: profile.id,
+            type: 'consultant_assigned',
+            category: 'relationship',
+            priority: 'high',
+            title: 'Consultant Assigned',
+            message: `${consultantProfile?.full_name || 'Your consultant'} has been assigned as your agricultural consultant`,
+            action_url: '/dashboard/farmer/consultant',
+            metadata: { consultant_id: consultantId },
+          },
+        ];
+
+        await notificationService.createMany(notifications);
+        toast.success('Farmer account created successfully!');
+      } catch (notificationError) {
+        console.error('Notification error:', notificationError);
+        // Don't fail the farmer creation if notifications fail
+        toast.success('Farmer account created successfully!');
       }
 
       // Success!

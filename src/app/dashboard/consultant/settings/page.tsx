@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { TagInput } from "@/components/dashboard/consultant/TagInput";
 import { Country, State, City, IState, ICity } from 'country-state-city';
 import * as flags from 'country-flag-icons/react/3x2';
+import { toast } from 'sonner';
 
 const SPECIALIZATION_SUGGESTIONS = [
   'Crop Management',
@@ -378,15 +379,14 @@ export default function SettingsPage() {
         throw new Error(result.error || 'Failed to update profile');
       }
 
-      setSuccessMessage('Settings saved successfully!');
+      toast.success('Settings saved successfully!');
       setAvatarFile(null);
-      setTimeout(() => setSuccessMessage(''), 4000);
 
       await fetchProfile();
       await refreshGlobalProfile();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to update profile';
-      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }

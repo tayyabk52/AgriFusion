@@ -10,6 +10,9 @@ import { CropTagInput } from './CropTagInput';
 import { ConfirmationModal } from './ConfirmationModal';
 import { Country, State, City, ICountry, IState, ICity } from 'country-state-city';
 import * as flags from 'country-flag-icons/react/3x2';
+import { toast } from 'sonner';
+import { NotificationService } from '@/lib/notifications/NotificationService';
+import { BaseNotification } from '@/types/notifications';
 
 /**
  * Parse a full phone number (with country code) into its components
@@ -401,6 +404,81 @@ export const EditFarmerModal: React.FC<EditFarmerModalProps> = ({
 
       if (profileResult.error) throw profileResult.error;
       if (farmerResult.error) throw farmerResult.error;
+
+      // Send notifications to farmer about updates
+      try {
+        const notificationService = new NotificationService(supabase);
+
+        // Get consultant name
+        const { data: consultantProfile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', farmer.consultant_id)
+          .single();
+
+        const notifications: BaseNotification[] = [];
+
+        // Notify farmer of profile update
+        notifications.push({
+          recipient_id: profile.id,
+          type: 'profile_update',
+          category: 'profile',
+          priority: 'normal',
+          title: 'Profile Updated',
+          message: `Your profile was updated by ${consultantProfile?.full_name || 'your consultant'}`,
+          action_url: '/dashboard/farmer/settings',
+        });
+
+        // If phone changed, send security alert
+        const originalPhone = farmer.profiles?.phone || '';
+        const newPhone = formData.phone ? `${formData.phoneCountryCode}${formData.phone}` : '';
+        if (originalPhone !== newPhone && newPhone) {
+          notifications.push({
+            recipient_id: profile.id,
+            type: 'security_alert',
+            category: 'security',
+            priority: 'high',
+            title: 'Contact Number Updated',
+            message: `Your phone number has been updated by your consultant. New number: ${newPhone}`,
+            action_url: '/dashboard/farmer/settings',
+            metadata: {
+              alert_type: 'phone_changed',
+              old_phone: originalPhone,
+              new_phone: newPhone
+            },
+          });
+        }
+
+        // If farm details changed, notify about farm update
+        const farmChanges: string[] = [];
+        if (farmer.farm_name !== formData.farmName) farmChanges.push('farm name');
+        if (farmer.land_size_acres?.toString() !== formData.landSize) farmChanges.push('land size');
+        if (JSON.stringify(farmer.current_crops) !== JSON.stringify(formData.crops)) farmChanges.push('crops');
+        if (farmer.state !== formData.state || farmer.district !== formData.district) farmChanges.push('location');
+
+        if (farmChanges.length > 0) {
+          notifications.push({
+            recipient_id: profile.id,
+            type: 'farm_update',
+            category: 'farm',
+            priority: 'normal',
+            title: 'Farm Details Updated',
+            message: `Your farm information has been updated: ${farmChanges.join(', ')}`,
+            action_url: '/dashboard/farmer/farm',
+            metadata: { changes: farmChanges },
+          });
+        }
+
+        if (notifications.length > 0) {
+          await notificationService.createMany(notifications);
+        }
+
+        toast.success('Farmer details updated successfully');
+      } catch (notificationError) {
+        console.error('Notification error:', notificationError);
+        // Don't fail the update if notifications fail
+        toast.success('Farmer details updated successfully');
+      }
 
       onSuccess();
       onClose();

@@ -21,6 +21,8 @@ import { FarmerActionsMenu } from "@/components/dashboard/consultant/FarmerActio
 import { ConfirmationModal } from "@/components/dashboard/consultant/ConfirmationModal";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { DashboardHeader } from "@/components/dashboard/consultant/DashboardHeader";
+import { toast } from 'sonner';
+import { NotificationService } from '@/lib/notifications/NotificationService';
 
 export default function FarmersPage() {
   const router = useRouter();
@@ -224,6 +226,31 @@ export default function FarmersPage() {
         .eq("id", farmerToRemove.profiles.id);
 
       if (profileError) throw profileError;
+
+      // Send notification to farmer about removal
+      try {
+        const notificationService = new NotificationService(supabase);
+
+        await notificationService.create({
+          recipient_id: farmerToRemove.profiles.id,
+          type: 'consultant_removed',
+          category: 'relationship',
+          priority: 'high',
+          title: 'Consultant Assignment Changed',
+          message: `You have been unlinked from consultant ${profile?.full_name || 'your consultant'}. A new consultant will be assigned soon.`,
+          action_url: '/dashboard/farmer',
+          metadata: {
+            previous_consultant_id: profile?.id,
+            reason: 'Consultant removed farmer from network'
+          },
+        });
+
+        toast.success('Farmer removed from your network');
+      } catch (notificationError) {
+        console.error('Notification error:', notificationError);
+        // Don't fail the removal if notifications fail
+        toast.success('Farmer removed from your network');
+      }
 
       setMessage({
         type: "success",

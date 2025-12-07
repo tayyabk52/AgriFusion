@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { Country, ICountry } from 'country-state-city';
 import * as flags from 'country-flag-icons/react/3x2';
+import { toast } from 'sonner';
 
 
 interface Profile {
@@ -280,11 +281,11 @@ export default function FarmerSettings() {
 
             // Refresh local state
             setProfile(prev => prev ? { ...prev, full_name: formData.full_name, phone: fullPhone, avatar_url: avatarUrl } : null);
-            setMessage({ type: 'success', text: 'Profile updated successfully!' });
+            toast.success('Profile updated successfully!');
 
         } catch (error: any) {
             console.error('Error saving profile:', error);
-            setMessage({ type: 'error', text: error.message || 'Failed to update profile.' });
+            toast.error(error.message || 'Failed to update profile.');
         } finally {
             setSaving(false);
         }
@@ -504,7 +505,7 @@ export default function FarmerSettings() {
                                 onClick={async () => {
                                     if (profile?.email) {
                                         await supabase.auth.resetPasswordForEmail(profile.email);
-                                        setMessage({ type: 'success', text: 'Password reset email sent!' });
+                                        toast.success('Password reset email sent!');
                                     }
                                 }}
                             >

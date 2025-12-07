@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { supabaseAdmin } from '@/lib/supabaseServer';
+import { notifyFarmerConsultantLink, notifyAccountActivated } from '@/lib/notifications/server';
 
 /**
  * POST /api/farmers/link
@@ -169,7 +170,36 @@ export async function POST(request: NextRequest) {
       // Just log the error
     }
 
-    // 9. Return success
+    // 9. Fetch names for notifications
+    const { data: farmerProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', farmerProfileId)
+      .single();
+
+    const { data: consultantProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', consultant.profile_id)
+      .single();
+
+    // 10. Send notifications to both farmer and consultant
+    try {
+      await notifyFarmerConsultantLink(
+        farmerProfileId,
+        farmerProfile?.full_name || 'Farmer',
+        consultant.profile_id,
+        consultantProfile?.full_name || 'Consultant'
+      );
+
+      // Also notify farmer of account activation
+      await notifyAccountActivated(farmerProfileId);
+    } catch (notificationError) {
+      console.error('Notification error:', notificationError);
+      // Don't fail the request if notifications fail
+    }
+
+    // 11. Return success
     return NextResponse.json({
       success: true,
       message: 'Farmer linked successfully',
