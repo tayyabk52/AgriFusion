@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { motion } from 'framer-motion';
 import { Leaf, Target, Eye, CheckCircle2, Sprout, Users, Recycle, TrendingUp, Globe, Lightbulb } from 'lucide-react';
 import { ChallengeCard } from '@/components/ui/ChallengeCard';
@@ -25,9 +23,7 @@ export default function AboutPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-white">
-            <Navbar />
-
+        <div className="bg-white">
             {/* Hero Section - Pure White Background */}
             <section className="relative min-h-screen w-full flex items-center justify-center pt-32 pb-32 selection:bg-emerald-100 selection:text-emerald-900 bg-white">
                 <div className="relative z-10 max-w-7xl mx-auto px-6">
@@ -242,8 +238,6 @@ export default function AboutPage() {
                     icon={<Eye className="w-6 h-6 text-slate-900" />}
                 />
             </section>
-
-            <Footer />
         </div>
     );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -66,19 +66,37 @@ const mobileItemVariants = {
     visible: { opacity: 1, x: 0 },
 };
 
-export const Navbar = () => {
+const NavbarComponent = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [hoveredTab, setHoveredTab] = useState<string | null>(null);
     const pathname = usePathname();
 
-    useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 20);
-        };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+    // Optimized scroll handler with throttling
+    const handleScroll = useCallback(() => {
+        const scrolled = window.scrollY > 20;
+        setIsScrolled(scrolled);
     }, []);
+
+    useEffect(() => {
+        // Throttle scroll events for better performance
+        let ticking = false;
+        const throttledScroll = () => {
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    handleScroll();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        };
+
+        // Set initial state
+        handleScroll();
+
+        window.addEventListener('scroll', throttledScroll, { passive: true });
+        return () => window.removeEventListener('scroll', throttledScroll);
+    }, [handleScroll]);
 
     return (
         <>
@@ -274,3 +292,7 @@ export const Navbar = () => {
         </>
     );
 };
+
+// Memoized export to prevent unnecessary re-renders
+// Only re-renders when pathname changes
+export const Navbar = memo(NavbarComponent);

@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { RoleCard } from '@/components/auth/RoleCard';
 import { RoleModal } from '@/components/auth/RoleModal';
 import { motion } from 'framer-motion';
@@ -65,10 +63,8 @@ export default function SignupPage() {
     const [selectedRole, setSelectedRole] = useState<typeof ROLES[0] | null>(null);
 
     return (
-        <div className="min-h-screen bg-white">
-            <Navbar />
-
-            <main className="relative min-h-screen pt-32 pb-20 px-6">
+        <div className="bg-white">
+            <div className="relative min-h-screen pt-32 pb-20 px-6">
                 {/* Ambient Background */}
                 <div className="fixed inset-0 pointer-events-none z-0">
                     <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-50 via-white to-white opacity-60" />
@@ -169,15 +165,13 @@ export default function SignupPage() {
                         </div>
                     </motion.div>
                 </div>
-            </main>
+            </div>
 
             <RoleModal
                 role={selectedRole}
                 isOpen={!!selectedRole}
                 onClose={() => setSelectedRole(null)}
             />
-
-            <Footer />
         </div>
     );
 }

@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
 import { motion } from 'framer-motion';
 import { Mail, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 
@@ -164,9 +162,7 @@ export default function ContactPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white">
-            <Navbar />
-
+        <div className="bg-white">
             {/* Hero Section with Animations */}
             <section className="relative min-h-screen flex items-center justify-center pt-32 pb-32 px-6 overflow-hidden bg-white">
                 {/* Floating Decorative Elements */}
@@ -375,8 +371,6 @@ export default function ContactPage() {
                     </motion.div>
                 </motion.div>
             </section>
-
-            <Footer />
         </div>
     );
 }

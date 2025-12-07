@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, AlertTriangle, RotateCcw, ScanLine, BarChart3, CheckCircle2, Zap } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, RotateCcw, ScanLine, BarChart3, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { SoilAnalysisResponse, AnalysisState } from '@/types/soil';
 import { analyzeSoilImage, SoilAnalysisApiError } from '@/lib/soilApi';
@@ -41,64 +41,50 @@ export const SoilAnalysisPage: React.FC = () => {
     };
 
     return (
-        <div className="h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50/50 text-slate-900 flex flex-col overflow-hidden">
-            {/* Enhanced Header */}
-            <header className="border-b border-slate-200 bg-white/90 backdrop-blur-md z-50 shrink-0 shadow-sm">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="h-screen bg-white text-slate-900 flex flex-col overflow-hidden">
+            {/* Compact Header */}
+            <header className="border-b border-slate-100 bg-white/80 backdrop-blur-sm z-50 shrink-0">
+                <div className="mx-auto max-w-7xl px-6 h-14 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link
-                            href="/"
-                            className="text-slate-400 hover:text-slate-900 transition-colors p-2 -ml-2 rounded-lg hover:bg-slate-100"
-                        >
-                            <ArrowLeft size={20} strokeWidth={2} />
+                        <Link href="/" className="text-slate-400 hover:text-slate-900 transition-colors">
+                            <ArrowLeft size={18} />
                         </Link>
-                        <div className="h-5 w-px bg-slate-200" />
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm">
-                                <Zap size={16} className="text-white" strokeWidth={2.5} />
-                            </div>
-                            <h1 className="text-base font-bold tracking-tight text-slate-900">
-                                Soil<span className="text-emerald-600">Lens</span>
-                            </h1>
-                        </div>
+                        <div className="h-4 w-px bg-slate-200" />
+                        <h1 className="text-sm font-bold tracking-tight text-slate-900">
+                            Soil<span className="text-emerald-600">Lens</span>
+                        </h1>
                     </div>
 
                     {analysisState === 'success' && (
-                        <motion.button
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                        <button
                             onClick={handleReset}
-                            className="text-sm font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-2 transition-all px-3 py-2 rounded-xl hover:bg-slate-100"
+                            className="text-xs font-medium text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors"
                         >
-                            <RotateCcw size={16} strokeWidth={2} />
-                            <span className="hidden sm:inline">New Analysis</span>
-                        </motion.button>
+                            <RotateCcw size={14} />
+                            New Analysis
+                        </button>
                     )}
                 </div>
             </header>
 
-            {/* Main Content - Responsive Layout */}
+            {/* Main Content - No Scroll */}
             <main className="flex-1 overflow-hidden">
-                <div className="h-full mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
-                    <div className="h-full flex flex-col lg:grid lg:grid-cols-12 gap-6 lg:gap-8 lg:items-start">
+                <div className="h-full mx-auto max-w-7xl px-6 py-6">
+                    <div className="h-full grid lg:grid-cols-12 gap-8 items-stretch">
 
-                        {/* LEFT COLUMN: Input Section */}
+                        {/* LEFT COLUMN: Input */}
                         <div className="lg:col-span-5 flex flex-col justify-center space-y-6">
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="space-y-4"
+                                className="space-y-3"
                             >
-                                <div>
-                                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mb-2">
-                                        AI Soil Analysis
-                                    </h2>
-                                    <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-md">
-                                        Upload a clear soil image and get instant identification powered by advanced AI technology.
-                                    </p>
-                                </div>
+                                <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                                    Soil Analysis Tool
+                                </h2>
+                                <p className="text-sm text-slate-500 leading-relaxed max-w-md">
+                                    Upload a clear image. AI identifies soil type instantly.
+                                </p>
                             </motion.div>
 
                             <motion.div
@@ -119,18 +105,14 @@ export const SoilAnalysisPage: React.FC = () => {
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.2 }}
                                     >
-                                        <div className="rounded-2xl bg-red-50 border-2 border-red-100 p-4 flex items-start gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
-                                                <AlertTriangle size={18} className="text-red-600" strokeWidth={2.5} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="text-sm font-semibold text-red-900 mb-1">Analysis Failed</h4>
-                                                <p className="text-xs text-red-700 mb-2">{error}</p>
+                                        <div className="rounded-xl bg-red-50 border border-red-100 p-3 flex items-start gap-3">
+                                            <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-xs text-red-700 font-medium">{error}</p>
                                                 <button
                                                     onClick={handleReset}
-                                                    className="text-xs text-red-800 font-semibold hover:underline"
+                                                    className="text-xs text-red-800 mt-1 hover:underline"
                                                 >
                                                     Try Again
                                                 </button>
@@ -140,38 +122,32 @@ export const SoilAnalysisPage: React.FC = () => {
                                 )}
                             </AnimatePresence>
 
-                            {/* Features - Only show when idle */}
+                            {/* Quick Stats */}
                             {analysisState === 'idle' && (
                                 <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     transition={{ delay: 0.2 }}
-                                    className="flex flex-wrap items-center gap-4 pt-2"
+                                    className="flex items-center gap-6 pt-2"
                                 >
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shadow-sm">
-                                            <CheckCircle2 size={18} className="text-emerald-600" strokeWidth={2.5} />
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                                            <CheckCircle2 size={14} className="text-emerald-600" />
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-slate-800">9 Soil Types</p>
-                                            <p className="text-xs text-slate-500">Comprehensive database</p>
-                                        </div>
+                                        <span className="text-xs text-slate-600">9 Soil Types</span>
                                     </div>
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shadow-sm">
-                                            <BarChart3 size={18} className="text-blue-600" strokeWidth={2.5} />
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                                            <BarChart3 size={14} className="text-blue-600" />
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-slate-800">AI Powered</p>
-                                            <p className="text-xs text-slate-500">High accuracy</p>
-                                        </div>
+                                        <span className="text-xs text-slate-600">AI Powered</span>
                                     </div>
                                 </motion.div>
                             )}
                         </div>
 
-                        {/* RIGHT COLUMN: Results Section */}
-                        <div className="lg:col-span-7 flex items-center justify-center overflow-hidden min-h-0 flex-1 lg:flex-none lg:h-full">
+                        {/* RIGHT COLUMN: Results */}
+                        <div className="lg:col-span-7 flex items-center justify-center overflow-hidden">
                             <div className="w-full h-full flex items-center">
                                 <AnimatePresence mode="wait">
                                     {analysisState === 'success' && results ? (
@@ -180,7 +156,7 @@ export const SoilAnalysisPage: React.FC = () => {
                                             initial={{ opacity: 0, scale: 0.98 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.98 }}
-                                            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                                            transition={{ duration: 0.3 }}
                                             className="w-full"
                                         >
                                             <ResultsDisplay results={results} />
@@ -193,27 +169,16 @@ export const SoilAnalysisPage: React.FC = () => {
                                             exit={{ opacity: 0 }}
                                             className="w-full h-full flex items-center justify-center"
                                         >
-                                            <div className="text-center max-w-sm space-y-6 px-4">
-                                                <motion.div
-                                                    animate={{
-                                                        scale: [1, 1.05, 1],
-                                                        opacity: [0.5, 0.7, 0.5]
-                                                    }}
-                                                    transition={{
-                                                        duration: 3,
-                                                        repeat: Infinity,
-                                                        ease: "easeInOut"
-                                                    }}
-                                                    className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-3xl flex items-center justify-center mx-auto border-2 border-slate-200 shadow-lg"
-                                                >
-                                                    <ScanLine size={36} className="text-slate-400" strokeWidth={1.5} />
-                                                </motion.div>
-                                                <div className="space-y-2">
-                                                    <h3 className="text-lg font-bold text-slate-900">
+                                            <div className="text-center max-w-sm space-y-4">
+                                                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto border border-slate-100">
+                                                    <ScanLine size={28} className="text-slate-300" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-semibold text-slate-900 mb-1">
                                                         Awaiting Analysis
                                                     </h3>
-                                                    <p className="text-sm text-slate-500 leading-relaxed">
-                                                        Upload a soil image to begin AI-powered analysis
+                                                    <p className="text-xs text-slate-400">
+                                                        Results will appear here after upload
                                                     </p>
                                                 </div>
                                             </div>
