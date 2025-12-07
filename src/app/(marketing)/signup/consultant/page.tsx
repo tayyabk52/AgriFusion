@@ -83,7 +83,13 @@ const HeaderNavbar = ({ onBack }: { onBack: () => void }) => (
     </div>
     <div className="flex items-center gap-3">
       <span className="text-xs font-medium text-slate-500 hidden sm:block">Need help?</span>
-      <Button variant="ghost" size="sm" className="text-slate-500" icon={<HelpCircle size={18} />}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-slate-500"
+        icon={<HelpCircle size={18} />}
+        onClick={() => window.location.href = '/contact'}
+      >
         Support
       </Button>
     </div>
@@ -1170,14 +1176,12 @@ export default function ConsultantRegistration() {
       className="space-y-6"
     >
       {/* Specialization Areas */}
-      <div className={`bg-white rounded-xl p-5 shadow-sm transition-all ${
-        highlightedFields.has('specialization_areas')
+      <div className={`bg-white rounded-xl p-5 shadow-sm transition-all ${highlightedFields.has('specialization_areas')
           ? 'border-2 border-red-400 ring-2 ring-red-400/50 bg-red-50/30 animate-shake'
           : 'border border-slate-200'
-      }`}>
-        <label className={`block text-xs font-bold uppercase tracking-wider mb-3 transition-colors ${
-          highlightedFields.has('specialization_areas') ? 'text-red-500 animate-pulse' : 'text-slate-500'
         }`}>
+        <label className={`block text-xs font-bold uppercase tracking-wider mb-3 transition-colors ${highlightedFields.has('specialization_areas') ? 'text-red-500 animate-pulse' : 'text-slate-500'
+          }`}>
           Specialization Areas *
         </label>
 
@@ -1204,11 +1208,10 @@ export default function ConsultantRegistration() {
                 type="button"
                 onClick={() => handleAddSpecialization(spec)}
                 disabled={formData.specialization_areas.includes(spec)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                  formData.specialization_areas.includes(spec)
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${formData.specialization_areas.includes(spec)
                     ? 'bg-blue-50 text-blue-400 border-blue-200 cursor-not-allowed opacity-50'
                     : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'
-                }`}
+                  }`}
               >
                 {spec}
               </button>
@@ -1416,106 +1419,106 @@ export default function ConsultantRegistration() {
       <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
         <HeaderNavbar onBack={handleBackToSignup} />
 
-      <main className="pt-16 h-screen flex overflow-hidden">
-        {/* Fixed Sidebar for Desktop */}
-        <StepSidebar currentStep={currentStep > 4 ? 4 : currentStep} />
+        <main className="pt-16 h-screen flex overflow-hidden">
+          {/* Fixed Sidebar for Desktop */}
+          <StepSidebar currentStep={currentStep > 4 ? 4 : currentStep} />
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 flex flex-col relative overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
-            <div className="max-w-2xl mx-auto w-full">
-              {/* Mobile Step Indicator */}
-              {currentStep < 5 && (
-                <div className="lg:hidden mb-6 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-900">{STEPS[currentStep - 1].title}</h2>
-                    <p className="text-xs text-slate-500">{STEPS[currentStep - 1].subtitle}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm border border-blue-100">
-                    {currentStep}/4
-                  </div>
-                </div>
-              )}
-
-              {/* Desktop Header */}
-              {currentStep < 5 && (
-                <div className="hidden lg:block mb-8">
-                  <h1 className="text-2xl font-bold text-slate-900">{STEPS[currentStep - 1].title}</h1>
-                  <p className="text-sm text-slate-500 mt-1">Please provide your details below.</p>
-                </div>
-              )}
-
-              {/* Validation Errors */}
-              <AnimatePresence>
-                {validationErrors.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mt-0.5">
-                        <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-sm font-semibold text-red-900 mb-1">Please complete the following:</h3>
-                        <ul className="space-y-1">
-                          {validationErrors.map((error, index) => (
-                            <li key={index} className="text-sm text-red-700 flex items-center gap-2">
-                              <span className="w-1 h-1 rounded-full bg-red-400"></span>
-                              {error}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+          {/* Scrollable Content Area */}
+          <div className="flex-1 flex flex-col relative overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
+              <div className="max-w-2xl mx-auto w-full">
+                {/* Mobile Step Indicator */}
+                {currentStep < 5 && (
+                  <div className="lg:hidden mb-6 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-900">{STEPS[currentStep - 1].title}</h2>
+                      <p className="text-xs text-slate-500">{STEPS[currentStep - 1].subtitle}</p>
                     </div>
-                  </motion.div>
+                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm border border-blue-100">
+                      {currentStep}/4
+                    </div>
+                  </div>
                 )}
-              </AnimatePresence>
 
-              {/* Content */}
-              <AnimatePresence mode="wait">
-                {currentStep === 1 && renderAccountStep()}
-                {currentStep === 2 && renderProfessionalStep()}
-                {currentStep === 3 && renderExpertiseStep()}
-                {currentStep === 4 && renderReviewStep()}
-                {currentStep === 5 && renderSuccess()}
-              </AnimatePresence>
-            </div>
-          </div>
+                {/* Desktop Header */}
+                {currentStep < 5 && (
+                  <div className="hidden lg:block mb-8">
+                    <h1 className="text-2xl font-bold text-slate-900">{STEPS[currentStep - 1].title}</h1>
+                    <p className="text-sm text-slate-500 mt-1">Please provide your details below.</p>
+                  </div>
+                )}
 
-          {/* Footer Actions */}
-          {currentStep < 5 && (
-            <div className="p-4 sm:p-6 border-t border-slate-200 bg-white/80 backdrop-blur-sm z-10">
-              <div className="max-w-2xl mx-auto w-full flex justify-between items-center">
-                <Button
-                  variant="ghost"
-                  onClick={prevStep}
-                  disabled={currentStep === 1}
-                  className={currentStep === 1 ? 'opacity-0 pointer-events-none' : ''}
-                >
-                  Back
-                </Button>
+                {/* Validation Errors */}
+                <AnimatePresence>
+                  {validationErrors.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center mt-0.5">
+                          <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-sm font-semibold text-red-900 mb-1">Please complete the following:</h3>
+                          <ul className="space-y-1">
+                            {validationErrors.map((error, index) => (
+                              <li key={index} className="text-sm text-red-700 flex items-center gap-2">
+                                <span className="w-1 h-1 rounded-full bg-red-400"></span>
+                                {error}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                <Button
-                  variant="premium"
-                  rounded="full"
-                  onClick={currentStep === 4 ? handleSubmit : nextStep}
-                  className="px-8"
-                  icon={<ArrowRight size={18} />}
-                  iconPosition="right"
-                >
-                  {currentStep === 4 ? 'Submit Application' : 'Continue'}
-                </Button>
+                {/* Content */}
+                <AnimatePresence mode="wait">
+                  {currentStep === 1 && renderAccountStep()}
+                  {currentStep === 2 && renderProfessionalStep()}
+                  {currentStep === 3 && renderExpertiseStep()}
+                  {currentStep === 4 && renderReviewStep()}
+                  {currentStep === 5 && renderSuccess()}
+                </AnimatePresence>
               </div>
             </div>
-          )}
-        </div>
-      </main>
-    </div>
+
+            {/* Footer Actions */}
+            {currentStep < 5 && (
+              <div className="p-4 sm:p-6 border-t border-slate-200 bg-white/80 backdrop-blur-sm z-10">
+                <div className="max-w-2xl mx-auto w-full flex justify-between items-center">
+                  <Button
+                    variant="ghost"
+                    onClick={prevStep}
+                    disabled={currentStep === 1}
+                    className={currentStep === 1 ? 'opacity-0 pointer-events-none' : ''}
+                  >
+                    Back
+                  </Button>
+
+                  <Button
+                    variant="premium"
+                    rounded="full"
+                    onClick={currentStep === 4 ? handleSubmit : nextStep}
+                    className="px-8"
+                    icon={<ArrowRight size={18} />}
+                    iconPosition="right"
+                  >
+                    {currentStep === 4 ? 'Submit Application' : 'Continue'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </>
   );
 }

@@ -72,7 +72,13 @@ const HeaderNavbar = ({ onBack }: { onBack: () => void }) => (
     </div>
     <div className="flex items-center gap-3">
       <span className="text-xs font-medium text-slate-500 hidden sm:block">Need help?</span>
-      <Button variant="ghost" size="sm" className="text-slate-500" icon={<HelpCircle size={18} />}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-slate-500"
+        icon={<HelpCircle size={18} />}
+        onClick={() => window.location.href = '/contact'}
+      >
         Support
       </Button>
     </div>
