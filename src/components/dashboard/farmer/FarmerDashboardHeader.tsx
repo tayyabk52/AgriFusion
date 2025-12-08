@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ChevronDown, LogOut, Settings, BadgeCheck, Bell, CheckCheck } from 'lucide-react';
+import { ChevronDown, LogOut, Settings, BadgeCheck, Bell, CheckCheck, Clock, CheckCircle2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -21,33 +21,42 @@ const getNotificationIcon = (type: string) => {
     }
 };
 
-const getNotificationColor = (type: string) => {
+const getNotificationStyle = (type: string) => {
     switch (type) {
-        case 'query': return 'from-blue-50 to-blue-100 border-blue-200';
-        case 'farmer': return 'from-emerald-50 to-emerald-100 border-emerald-200';
-        case 'consultant': return 'from-purple-50 to-purple-100 border-purple-200';
-        case 'relationship': return 'from-violet-50 to-violet-100 border-violet-200';
-        case 'farm': return 'from-green-50 to-green-100 border-green-200';
-        case 'security': return 'from-red-50 to-red-100 border-red-200';
-        case 'status': return 'from-teal-50 to-teal-100 border-teal-200';
-        case 'system': return 'from-slate-50 to-slate-100 border-slate-200';
-        default: return 'from-purple-50 to-purple-100 border-purple-200';
+        case 'query':
+            return { bg: 'bg-blue-100', text: 'text-blue-600' };
+        case 'farmer':
+            return { bg: 'bg-emerald-100', text: 'text-emerald-600' };
+        case 'consultant':
+            return { bg: 'bg-purple-100', text: 'text-purple-600' };
+        case 'relationship':
+            return { bg: 'bg-violet-100', text: 'text-violet-600' };
+        case 'farm':
+            return { bg: 'bg-green-100', text: 'text-green-600' };
+        case 'security':
+            return { bg: 'bg-red-100', text: 'text-red-600' };
+        case 'status':
+            return { bg: 'bg-teal-100', text: 'text-teal-600' };
+        case 'system':
+            return { bg: 'bg-slate-100', text: 'text-slate-600' };
+        default:
+            return { bg: 'bg-purple-100', text: 'text-purple-600' };
     }
 };
 
-const formatRelativeTime = (dateString: string) => {
+const formatRelativeTime = (dateString: string): string => {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString();
 };
 
 export const FarmerDashboardHeader = () => {
@@ -70,7 +79,7 @@ export const FarmerDashboardHeader = () => {
         [notifications]
     );
 
-    const isVerified = !isLoading && profile?.is_verified;
+    const isVerified = !isLoading && profile !== null;
 
     // Use default values while loading
     const displayProfile = profile || {
@@ -150,22 +159,30 @@ export const FarmerDashboardHeader = () => {
     };
 
     return (
-        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 mb-8 transition-all duration-300">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <header
+            className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/60 transition-all duration-300 px-3 sm:px-6 md:px-8"
+            style={{
+                willChange: 'transform',
+                transform: 'translateZ(0)',
+                backfaceVisibility: 'hidden',
+                WebkitFontSmoothing: 'antialiased',
+            }}
+        >
+            <div className="max-w-7xl mx-auto h-14 sm:h-16 flex items-center justify-between gap-2">
 
-                {/* Left: Welcome Message */}
-                <div className="flex flex-col justify-center">
-                    <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                {/* Left: Welcome Message - hidden on mobile */}
+                <div className="hidden sm:flex flex-col justify-center min-w-0 flex-shrink">
+                    <h1 className="text-lg md:text-xl font-bold text-slate-900 flex items-center gap-2 truncate">
                         Welcome back, {displayProfile.full_name.split(' ')[0]}
                         <span className="animate-wave inline-block origin-[70%_70%]">👋</span>
                     </h1>
-                    <p className="text-sm text-slate-500 hidden sm:block font-medium">
-                        Here's what's happening on your farm today.
+                    <p className="text-xs md:text-sm text-slate-500 hidden md:block font-medium">
+                        Here&apos;s what&apos;s happening on your farm today.
                     </p>
                 </div>
 
-                {/* Right Section */}
-                <div className="flex items-center gap-4">
+                {/* Right Section - flex to end on mobile */}
+                <div className="flex items-center gap-2 sm:gap-4 ml-auto">
                     {/* Notifications */}
                     <div className="relative" ref={notificationRef}>
                         <motion.button
@@ -176,7 +193,7 @@ export const FarmerDashboardHeader = () => {
                             whileTap={{ scale: 0.95 }}
                             aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
                             aria-expanded={isNotificationsOpen}
-                            className={`relative p-2.5 rounded-xl transition-all border shadow-sm ${isNotificationsOpen
+                            className={`relative p-2.5 rounded-xl transition-all border shadow-sm will-change-transform ${isNotificationsOpen
                                 ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
                                 : 'text-slate-500 hover:text-emerald-600 bg-white hover:bg-emerald-50 border-slate-200 hover:border-emerald-200'
                                 }`}
@@ -193,99 +210,142 @@ export const FarmerDashboardHeader = () => {
                             )}
                         </motion.button>
 
-                        {/* Notification Dropdown */}
+                        {/* Notification Dropdown - Responsive positioning */}
                         <AnimatePresence>
                             {isNotificationsOpen && (
                                 <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="absolute right-0 mt-2 w-96 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-50"
-                                    style={{ maxHeight: '80vh' }}
+                                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                                    className="fixed inset-x-4 xs:inset-x-6 sm:inset-x-auto sm:absolute sm:right-0 top-[76px] sm:top-auto sm:mt-2 w-[calc(100%-2rem)] xs:w-[calc(100%-3rem)] sm:w-80 md:w-96 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden z-50 ring-1 ring-slate-900/5 max-h-[calc(100vh-100px)] sm:max-h-[70vh] flex flex-col"
                                 >
                                     {/* Header */}
-                                    <div className="sticky top-0 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 px-5 py-4 z-10">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h3 className="text-base font-bold text-slate-900">Notifications</h3>
-                                                <p className="text-xs text-slate-600 mt-0.5">
-                                                    {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
-                                                </p>
-                                            </div>
+                                    <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex items-center justify-between flex-shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <Bell className="h-4 w-4 text-slate-500" />
+                                            <h3 className="text-sm font-bold text-slate-900">Notifications</h3>
+                                            {unreadCount > 0 && (
+                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">
+                                                    {unreadCount} new
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
                                             {unreadCount > 0 && (
                                                 <button
                                                     onClick={handleMarkAllRead}
                                                     disabled={markingRead}
-                                                    className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors disabled:opacity-50"
+                                                    className="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-50"
                                                 >
-                                                    <CheckCheck size={14} />
-                                                    Mark all read
+                                                    {markingRead ? 'Marking...' : 'Mark all read'}
                                                 </button>
                                             )}
+                                            {/* Close button for mobile */}
+                                            <button
+                                                onClick={() => setIsNotificationsOpen(false)}
+                                                className="sm:hidden p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                                            >
+                                                <X size={16} className="text-slate-500" />
+                                            </button>
                                         </div>
                                     </div>
 
-                                    {/* Notification List */}
-                                    <div className="overflow-y-auto" style={{ maxHeight: 'calc(80vh - 80px)' }}>
+                                    {/* Notifications List */}
+                                    <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
                                         {latestNotifications.length === 0 ? (
-                                            <div className="px-5 py-12 text-center">
-                                                <div className="text-5xl mb-3">🔔</div>
-                                                <p className="text-sm font-semibold text-slate-900 mb-1">All caught up!</p>
-                                                <p className="text-xs text-slate-500">No new notifications</p>
+                                            <div className="py-10 text-center">
+                                                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
+                                                    <CheckCircle2 className="h-7 w-7 text-slate-400" />
+                                                </div>
+                                                <p className="text-sm font-medium text-slate-600">All caught up!</p>
+                                                <p className="text-xs text-slate-400 mt-1">No new notifications</p>
                                             </div>
                                         ) : (
-                                            <div className="p-3 space-y-2">
-                                                {latestNotifications.map((notification) => (
-                                                    <motion.div
-                                                        key={notification.id}
-                                                        initial={{ opacity: 0, y: 10 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        className={`rounded-xl border p-3 cursor-pointer transition-all ${!notification.is_read
-                                                            ? `bg-gradient-to-br ${getNotificationColor(notification.type || 'system')} shadow-sm`
-                                                            : 'bg-white border-slate-200 hover:bg-slate-50'
-                                                            }`}
-                                                        onClick={() => handleNotificationClick(notification.id, notification.is_read)}
-                                                    >
-                                                        <div className="flex items-start gap-3">
-                                                            <div className="text-2xl shrink-0">
-                                                                {getNotificationIcon(notification.type || 'system')}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex items-start justify-between gap-2 mb-1">
-                                                                    <h4 className="text-sm font-bold text-slate-900 leading-tight">
-                                                                        {notification.title}
-                                                                    </h4>
-                                                                    {!notification.is_read && (
-                                                                        <span className="shrink-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-100"></span>
-                                                                    )}
-                                                                </div>
-                                                                <p className={`text-xs text-slate-600 leading-relaxed ${expandedNotificationId === notification.id ? '' : 'line-clamp-2'
-                                                                    }`}>
-                                                                    {notification.message}
-                                                                </p>
-                                                                <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
-                                                                    {formatRelativeTime(notification.created_at)}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>
-                                                ))}
-                                            </div>
-                                        )}
+                                            <div className="divide-y divide-slate-100">
+                                                {latestNotifications.map((notification, index) => {
+                                                    const style = getNotificationStyle(notification.type || 'system');
+                                                    const isExpanded = expandedNotificationId === notification.id;
 
-                                        {/* View All */}
-                                        {latestNotifications.length > 0 && (
-                                            <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent p-3 border-t border-slate-100">
-                                                <button
-                                                    onClick={() => router.push('/dashboard/farmer/notifications')}
-                                                    className="w-full text-center text-xs font-semibold text-emerald-600 hover:text-emerald-700 py-2 px-4 rounded-lg hover:bg-emerald-50 transition-colors"
-                                                >
-                                                    View all notifications
-                                                </button>
+                                                    return (
+                                                        <motion.div
+                                                            key={notification.id}
+                                                            initial={{ opacity: 0, x: -10 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: index * 0.05 }}
+                                                            onClick={() => handleNotificationClick(notification.id, notification.is_read)}
+                                                            className={`p-4 transition-colors cursor-pointer active:bg-slate-100 ${!notification.is_read ? 'bg-blue-50/40' : 'hover:bg-slate-50'
+                                                                }`}
+                                                        >
+                                                            <div className="flex gap-3">
+                                                                {/* Icon */}
+                                                                <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${style.bg} flex items-center justify-center text-lg`}>
+                                                                    {getNotificationIcon(notification.type || 'system')}
+                                                                </div>
+
+                                                                {/* Content */}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <p className={`text-sm font-semibold ${!notification.is_read ? 'text-slate-900' : 'text-slate-700'}`}>
+                                                                            {notification.title}
+                                                                        </p>
+                                                                        {!notification.is_read && (
+                                                                            <span className="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-blue-500" />
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Message - expandable */}
+                                                                    <AnimatePresence mode="wait">
+                                                                        <motion.p
+                                                                            key={isExpanded ? 'expanded' : 'collapsed'}
+                                                                            initial={{ opacity: 0 }}
+                                                                            animate={{ opacity: 1 }}
+                                                                            exit={{ opacity: 0 }}
+                                                                            transition={{ duration: 0.15 }}
+                                                                            className={`text-xs text-slate-500 mt-0.5 ${isExpanded ? '' : 'line-clamp-2'
+                                                                                }`}
+                                                                        >
+                                                                            {notification.message}
+                                                                        </motion.p>
+                                                                    </AnimatePresence>
+
+                                                                    {/* Footer: Time + expand hint */}
+                                                                    <div className="flex items-center justify-between mt-2">
+                                                                        <div className="flex items-center gap-1">
+                                                                            <Clock className="h-3 w-3 text-slate-400" />
+                                                                            <span className="text-[10px] text-slate-400 font-medium">
+                                                                                {formatRelativeTime(notification.created_at)}
+                                                                            </span>
+                                                                        </div>
+                                                                        {notification.message && notification.message.length > 80 && (
+                                                                            <span className="text-[10px] text-emerald-600 font-medium">
+                                                                                {isExpanded ? 'Show less' : 'Read more'}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </motion.div>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Footer */}
+                                    {latestNotifications.length > 0 && (
+                                        <div className="p-2 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
+                                            <button
+                                                onClick={() => {
+                                                    setIsNotificationsOpen(false);
+                                                    router.push('/dashboard/farmer/notifications');
+                                                }}
+                                                className="w-full py-2.5 text-xs font-semibold text-slate-600 hover:text-emerald-600 hover:bg-white rounded-lg transition-all"
+                                            >
+                                                View all notifications
+                                            </button>
+                                        </div>
+                                    )}
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -293,46 +353,57 @@ export const FarmerDashboardHeader = () => {
 
                     {/* Profile Dropdown */}
                     <div
-                        className="relative"
+                        className="relative flex-shrink-0"
                         onMouseEnter={() => setIsProfileMenuOpen(true)}
                         onMouseLeave={() => setIsProfileMenuOpen(false)}
                     >
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
+                        <button
                             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                            className={`flex items-center gap-3 pl-1 pr-2 py-1 rounded-full transition-all border ${isProfileMenuOpen
-                                ? 'bg-white border-slate-200 shadow-sm ring-1 ring-slate-900/5'
-                                : 'hover:bg-slate-50/80 border-transparent hover:border-slate-200/60'
-                                }`}
+                            aria-label="Profile menu"
+                            aria-expanded={isProfileMenuOpen}
+                            className="flex items-center gap-2 p-1.5 sm:pl-2 sm:pr-3 sm:py-1.5 rounded-full transition-all hover:bg-slate-100 active:scale-[0.98]"
                         >
-                            <div className="text-right hidden md:block mr-1">
-                                <div className="flex items-center justify-end gap-1.5">
-                                    <p className="text-sm font-semibold text-slate-800 leading-tight tracking-tight">{displayProfile.full_name}</p>
-                                    {isVerified && <BadgeCheck size={16} className="text-emerald-500" fill="currentColor" stroke="white" />}
-                                </div>
-                            </div>
-                            <div className="relative">
+                            {/* Avatar - always visible, first on all screens */}
+                            <div className="relative flex-shrink-0">
                                 {displayProfile.avatar_url ? (
                                     <img
                                         src={displayProfile.avatar_url}
                                         alt="Profile"
-                                        className="h-9 w-9 rounded-full object-cover ring-2 ring-white shadow-sm"
+                                        className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover ring-2 ring-emerald-100 shadow-sm"
                                     />
                                 ) : (
-                                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-xs ring-2 ring-white shadow-sm">
+                                    <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-xs sm:text-sm ring-2 ring-emerald-100 shadow-sm">
                                         {displayProfile.full_name.charAt(0).toUpperCase()}
                                     </div>
                                 )}
+                                <span className="absolute -bottom-0.5 -right-0.5 block h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                             </div>
-                            <motion.div
-                                animate={{ rotate: isProfileMenuOpen ? 180 : 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="hidden sm:block opacity-50"
-                            >
-                                <ChevronDown size={14} />
-                            </motion.div>
-                        </motion.button>
+
+                            {/* Name section - visible on all screens */}
+                            <div className="text-left min-w-0 flex-shrink">
+                                {/* Mobile: Full name, smaller font */}
+                                <p className="sm:hidden text-[10px] font-semibold text-slate-800 truncate max-w-[100px] leading-tight">
+                                    {displayProfile.full_name}
+                                </p>
+
+                                {/* Desktop: Full name with badge */}
+                                <div className="hidden sm:block">
+                                    <div className="flex items-center gap-1">
+                                        <p className="text-sm font-semibold text-slate-800 truncate max-w-[140px]">
+                                            {displayProfile.full_name}
+                                        </p>
+                                        {isVerified && <BadgeCheck size={14} className="text-emerald-500 flex-shrink-0" fill="currentColor" stroke="white" />}
+                                    </div>
+                                    <p className="text-[10px] text-emerald-600 font-medium">Farmer</p>
+                                </div>
+                            </div>
+
+                            {/* Chevron - only on tablet+ */}
+                            <ChevronDown
+                                size={14}
+                                className={`hidden sm:block text-slate-400 transition-transform duration-200 flex-shrink-0 ${isProfileMenuOpen ? 'rotate-180' : 'rotate-0'}`}
+                            />
+                        </button>
 
                         {/* Dropdown Menu */}
                         <AnimatePresence>
@@ -351,6 +422,7 @@ export const FarmerDashboardHeader = () => {
                                     <div className="p-2 space-y-1">
                                         <button
                                             onClick={() => router.push('/dashboard/farmer/settings')}
+                                            aria-label="Go to settings"
                                             className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all group"
                                         >
                                             <div className="p-1.5 rounded-lg bg-slate-100 text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-colors">
@@ -365,6 +437,7 @@ export const FarmerDashboardHeader = () => {
                                                 await supabase.auth.signOut();
                                                 router.push('/signin');
                                             }}
+                                            aria-label="Logout from account"
                                             className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-all group"
                                         >
                                             <div className="p-1.5 rounded-lg bg-red-50 text-red-500 group-hover:bg-red-100 transition-colors">

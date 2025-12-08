@@ -28,11 +28,14 @@ export function FarmerDashboardLayout({
             marginLeft: isCollapsed ? "80px" : "280px",
           }}
           transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="flex-1 px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 w-full overflow-x-hidden"
+          className="flex-1 w-full overflow-x-hidden"
           style={{ minHeight: "100vh" }}
         >
-          <div className="w-full">
-            <FarmerDashboardHeader />
+          {/* Header - no padding around it */}
+          <FarmerDashboardHeader />
+
+          {/* Content - with padding */}
+          <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8">
             {children}
           </div>
         </motion.main>
