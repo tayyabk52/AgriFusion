@@ -120,7 +120,7 @@ export default function SignupPage() {
                     </div>
 
                     {/* Cards Grid */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 max-w-sm sm:max-w-2xl lg:max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 max-w-full lg:max-w-7xl ma-0 md:mx-auto w-full">
                         {ROLES.map((role, index) => (
                             <motion.div
                                 key={role.id}
