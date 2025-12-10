@@ -30,6 +30,7 @@ export const CropTagInput: React.FC<CropTagInputProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const filteredSuggestions = COMMON_CROPS.filter(
     (crop) =>
@@ -39,11 +40,53 @@ export const CropTagInput: React.FC<CropTagInputProps> = ({
 
   const addCrop = (crop: string) => {
     const trimmedCrop = crop.trim();
-    if (trimmedCrop && !crops.includes(trimmedCrop)) {
-      onChange([...crops, trimmedCrop]);
+
+    // Clear previous error
+    setValidationError(null);
+
+    // Check if empty
+    if (!trimmedCrop) {
       setInputValue('');
       setShowSuggestions(false);
+      return;
     }
+
+    // Check minimum length
+    if (trimmedCrop.length < 2) {
+      setValidationError('Crop name must be at least 2 characters');
+      return;
+    }
+
+    // Check maximum length
+    if (trimmedCrop.length > 100) {
+      setValidationError('Crop name must be less than 100 characters');
+      return;
+    }
+
+    // Only allow letters, spaces, hyphens, apostrophes, ampersands, parentheses
+    // NO NUMBERS - as per user request
+    const validPattern = /^[A-Za-zÀ-ÿ\s\-'&()]+$/;
+    if (!validPattern.test(trimmedCrop)) {
+      setValidationError('Crop name can only contain letters, spaces, hyphens, apostrophes, and parentheses');
+      return;
+    }
+
+    // Check for excessive consecutive spaces
+    if (/\s{2,}/.test(trimmedCrop)) {
+      setValidationError('Avoid multiple consecutive spaces');
+      return;
+    }
+
+    // Check for duplicates
+    if (crops.includes(trimmedCrop)) {
+      setValidationError('This crop has already been added');
+      return;
+    }
+
+    // All validations passed - add crop
+    onChange([...crops, trimmedCrop]);
+    setInputValue('');
+    setShowSuggestions(false);
   };
 
   const removeCrop = (cropToRemove: string) => {
@@ -66,14 +109,22 @@ export const CropTagInput: React.FC<CropTagInputProps> = ({
           value={inputValue}
           onChange={(e) => {
             setInputValue(e.target.value);
+            setValidationError(null); // Clear error when typing
             setShowSuggestions(e.target.value.length > 0);
           }}
           onKeyDown={handleKeyDown}
           onFocus={() => inputValue && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder={placeholder}
-          className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent ${
+            validationError
+              ? 'border-red-300 bg-red-50/30 focus:ring-red-500'
+              : 'border-slate-200 focus:ring-emerald-500'
+          }`}
         />
+        {validationError && (
+          <p className="text-xs text-red-600 mt-1.5 ml-1 font-medium">{validationError}</p>
+        )}
 
         {/* Suggestions Dropdown */}
         <AnimatePresence>

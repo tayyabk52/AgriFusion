@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Save, User as UserIcon, Sprout, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { FarmerWithProfile } from '@/types/farmer';
-import { validatePhone } from '@/lib/validationUtils';
+import { validatePhone, validateFullName } from '@/lib/validationUtils';
 import { CropTagInput } from './CropTagInput';
 import { ConfirmationModal } from './ConfirmationModal';
 import { Country, State, City, ICountry, IState, ICity } from 'country-state-city';
@@ -292,8 +292,9 @@ export const EditFarmerModal: React.FC<EditFarmerModalProps> = ({
     const newErrors: Record<string, string> = {};
 
     // Full Name Validation
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
+    const nameValidation = validateFullName(formData.fullName);
+    if (!nameValidation.valid) {
+      newErrors.fullName = nameValidation.error || 'Invalid full name';
     } else if (formData.fullName.length > 255) {
       newErrors.fullName = 'Full name cannot exceed 255 characters';
     }
@@ -323,8 +324,14 @@ export const EditFarmerModal: React.FC<EditFarmerModalProps> = ({
     // Farm Name Validation
     if (!formData.farmName.trim()) {
       newErrors.farmName = 'Farm name is required';
+    } else if (formData.farmName.trim().length < 2) {
+      newErrors.farmName = 'Farm name must be at least 2 characters';
     } else if (formData.farmName.length > 255) {
       newErrors.farmName = 'Farm name cannot exceed 255 characters';
+    } else if (!/^[A-Za-zÀ-ÿ0-9\s\-'\.&()]+$/.test(formData.farmName.trim())) {
+      newErrors.farmName = 'Farm name contains invalid characters';
+    } else if (/\s{2,}/.test(formData.farmName.trim())) {
+      newErrors.farmName = 'Avoid multiple consecutive spaces';
     }
 
     // Country Validation (optional but helps load states)

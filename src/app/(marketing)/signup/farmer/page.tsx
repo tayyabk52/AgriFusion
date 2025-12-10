@@ -693,10 +693,26 @@ export default function FarmerRegistration() {
       </div>
 
       <h3 className="text-2xl font-bold text-slate-900 mb-2">Registration Complete!</h3>
-      <p className="text-sm text-slate-500 max-w-xs mb-8 leading-relaxed">
+      <p className="text-sm text-slate-500 max-w-xs mb-4 leading-relaxed">
         Welcome to AgriFusion, <span className="font-bold text-slate-900">{formData.full_name}</span>.
         Your farm profile has been created successfully.
       </p>
+
+      {/* Verification Email Notice */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl max-w-md">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <Mail size={20} className="text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-bold text-blue-900 mb-1">Verify Your Email</h4>
+            <p className="text-xs text-blue-700 leading-relaxed">
+              A verification link has been sent to <span className="font-semibold">{formData.email}</span>.
+              Please check your inbox and verify your email before logging in.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <Button
         variant="premium"
