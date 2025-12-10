@@ -1,18 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  User, Mail, Phone, MapPin, Sprout, Ruler, ArrowRight, ArrowLeft,
-  CheckCircle2, Tractor, Camera, X, Search,
+  User, Mail, Phone, ArrowRight, ArrowLeft,
+  CheckCircle2, Camera,
   FileText, Eye, EyeOff, Lock, ChevronRight, HelpCircle
 } from 'lucide-react';
-import { Country, State, City, ICountry, IState, ICity } from 'country-state-city';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import Loader from '@/components/ui/Loader';
 import { supabase } from '@/lib/supabaseClient';
+import { validateEmail, validatePhone, validatePassword, validateFullName } from '@/lib/validationUtils';
+import { Country } from 'country-state-city';
 import * as flags from 'country-flag-icons/react/3x2';
 
 /**
@@ -26,12 +27,6 @@ const STEPS = [
   { id: 1, title: "Account", subtitle: "Personal Details", icon: User },
   { id: 2, title: "Review", subtitle: "Confirm Data", icon: FileText },
 ];
-
-// Temporarily disabled steps (will be configured by consultant later)
-// const DISABLED_STEPS = [
-//   { id: 2, title: "Farm Profile", subtitle: "Location & Size", icon: MapPin },
-//   { id: 3, title: "Crops", subtitle: "Production Info", icon: Sprout },
-// ];
 
 /**
  * ------------------------------------------------------------------
@@ -330,72 +325,6 @@ const PhoneInput = ({ label, icon: Icon, placeholder, value, countryCode, onCoun
 
 /**
  * ------------------------------------------------------------------
- * COMPONENT: Select Field
- * ------------------------------------------------------------------
- */
-interface SelectFieldProps {
-  label: string;
-  icon: React.ElementType;
-  placeholder: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  required?: boolean;
-  half?: boolean;
-  name: string;
-  options: { value: string; label: string; }[];
-}
-
-const SelectField = ({ label, icon: Icon, placeholder, value, onChange, required, half, name, options }: SelectFieldProps) => {
-  const isFilled = value && value.length > 0;
-
-  return (
-    <div className={`relative group ${half ? 'col-span-1' : 'col-span-2'}`}>
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1 group-focus-within:text-emerald-600 transition-colors">
-        {label} {required && <span className="text-red-400">*</span>}
-      </label>
-      <div className="relative">
-        <div className="absolute top-3 left-3.5 text-slate-400 group-focus-within:text-emerald-500 transition-colors z-10 pointer-events-none">
-          <Icon size={16} />
-        </div>
-        <select
-          name={name}
-          className={`
-            premium-select w-full bg-slate-50/50 border border-slate-200 text-slate-900 text-sm rounded-xl
-            focus:ring-0 focus:border-emerald-500 block pl-10 pr-10 py-2.5
-            transition-all outline-none font-medium appearance-none
-            group-focus-within:bg-white group-focus-within:shadow-lg group-focus-within:shadow-emerald-500/5
-            ${isFilled ? 'border-slate-300 bg-white text-slate-900' : 'text-slate-400'}
-            cursor-pointer hover:border-slate-300 hover:bg-white/80
-          `}
-          value={value}
-          onChange={onChange}
-          required={required}
-        >
-          <option value="" disabled className="text-slate-400 bg-slate-50">
-            {placeholder}
-          </option>
-          {options.map((opt) => (
-            <option
-              key={opt.value}
-              value={opt.value}
-              className="text-slate-900 bg-white py-3 px-4 hover:bg-emerald-50 checked:bg-emerald-100 checked:text-emerald-700 font-medium"
-            >
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <div className="absolute top-3 right-3 pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
-          <ChevronRight size={16} className="rotate-90 group-focus-within:rotate-[270deg] transition-transform" />
-        </div>
-        {/* Active Border Bottom Accent */}
-        <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-emerald-500 scale-x-0 group-focus-within:scale-x-100 transition-transform duration-300 origin-center" />
-      </div>
-    </div>
-  );
-};
-
-/**
- * ------------------------------------------------------------------
  * COMPONENT: Review Field (Read-Only)
  * ------------------------------------------------------------------
  */
@@ -423,80 +352,38 @@ export default function FarmerRegistration() {
     phone: '',
     phoneCountryCode: '+92', // Default to Pakistan
     password: '',
-    farm_name: '',
-    country: '',
-    state: '',
-    district: '',
-    land_size_acres: '',
-    current_crops: [] as string[],
+    confirmPassword: '',
   });
 
-  const [cropInput, setCropInput] = useState('');
-  const [countries] = useState<ICountry[]>(() => Country.getAllCountries());
-  const [states, setStates] = useState<IState[]>([]);
-  const [cities, setCities] = useState<ICity[]>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-
-    // Handle country selection for dynamic state loading
-    if (name === 'country') {
-      const selectedCountry = countries.find(c => c.name === value);
-      if (selectedCountry) {
-        const countryStates = State.getStatesOfCountry(selectedCountry.isoCode);
-        setStates(countryStates);
-      } else {
-        setStates([]);
-      }
-      setFormData(prev => ({ ...prev, country: value, state: '', district: '' })); // Reset state and district
-      setCities([]);
-    }
-
-    // Handle state selection for dynamic city loading
-    if (name === 'state') {
-      const selectedCountry = countries.find(c => c.name === formData.country);
-      const selectedState = states.find(s => s.name === value);
-      if (selectedCountry && selectedState) {
-        const stateCities = City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
-        setCities(stateCities);
-      } else {
-        setCities([]);
-      }
-      setFormData(prev => ({ ...prev, state: value, district: '' })); // Reset district when state changes
-    }
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Store the file object for upload
-      setAvatarFile(file);
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => setAvatarPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
+    if (!file) return;
 
-  const handleAddCrop = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && cropInput.trim() !== '') {
-      e.preventDefault();
-      if (!formData.current_crops.includes(cropInput.trim())) {
-        setFormData({
-          ...formData,
-          current_crops: [...formData.current_crops, cropInput.trim()]
-        });
-      }
-      setCropInput('');
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setValidationErrors(['Please upload a JPG, PNG, or GIF image for your profile photo']);
+      return;
     }
-  };
 
-  const removeCrop = (crop: string) => {
-    setFormData({
-      ...formData,
-      current_crops: formData.current_crops.filter(c => c !== crop)
-    });
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      setValidationErrors(['Profile photo must be smaller than 2MB']);
+      return;
+    }
+
+    // Store the file and create preview
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+
+    // Clear any previous validation errors
+    setValidationErrors([]);
   };
 
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -507,18 +394,18 @@ export default function FarmerRegistration() {
     const fieldsToHighlight = new Set<string>();
 
     if (currentStep === 1) {
-      // Validate Account step
-      if (!formData.full_name.trim()) {
-        errors.push('Full name is required');
+      // Full Name Validation
+      const nameValidation = validateFullName(formData.full_name);
+      if (!nameValidation.valid) {
+        errors.push(nameValidation.error || 'Invalid full name');
         fieldsToHighlight.add('full_name');
       }
 
       // Email Validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!formData.email.trim()) {
         errors.push('Email address is required');
         fieldsToHighlight.add('email');
-      } else if (!emailRegex.test(formData.email)) {
+      } else if (!validateEmail(formData.email)) {
         errors.push('Please enter a valid email address');
         fieldsToHighlight.add('email');
       }
@@ -527,18 +414,26 @@ export default function FarmerRegistration() {
       if (!formData.phone.trim()) {
         errors.push('Phone number is required');
         fieldsToHighlight.add('phone');
-      } else if (formData.phone.length !== 10) {
+      } else if (!validatePhone(formData.phone)) {
         errors.push('Phone number must be exactly 10 digits');
         fieldsToHighlight.add('phone');
       }
 
       // Password Validation
-      if (!formData.password.trim()) {
-        errors.push('Password is required');
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.valid) {
+        errors.push(...passwordValidation.errors);
         fieldsToHighlight.add('password');
-      } else if (formData.password.length < 8) {
-        errors.push('Password must be at least 8 characters long');
+      }
+
+      // Confirm Password Validation
+      if (!formData.confirmPassword.trim()) {
+        errors.push('Please confirm your password');
+        fieldsToHighlight.add('confirmPassword');
+      } else if (formData.password !== formData.confirmPassword) {
+        errors.push('Passwords do not match');
         fieldsToHighlight.add('password');
+        fieldsToHighlight.add('confirmPassword');
       }
     }
 
@@ -742,120 +637,8 @@ export default function FarmerRegistration() {
           isHighlighted={highlightedFields.has('phone')}
         />
         <InputField label="Email Address" name="email" icon={Mail} type="email" placeholder="john@farm.com" value={formData.email} onChange={handleChange} required half isHighlighted={highlightedFields.has('email')} />
-        <InputField label="Create Password" name="password" icon={Lock} type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required isHighlighted={highlightedFields.has('password')} />
-      </div>
-    </motion.div>
-  );
-
-  const renderFarmStep = () => {
-    const countryOptions = countries.map(c => ({ value: c.name, label: c.name }));
-    const stateOptions = states.map(s => ({ value: s.name, label: s.name }));
-    const cityOptions = cities.map(c => ({ value: c.name, label: c.name }));
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        className="grid grid-cols-2 gap-4"
-      >
-        <InputField label="Farm Name" name="farm_name" icon={Tractor} placeholder="e.g. Green Valley Acres" value={formData.farm_name} onChange={handleChange} required />
-        <SelectField
-          label="Country"
-          name="country"
-          icon={MapPin}
-          placeholder="Select Country"
-          value={formData.country}
-          onChange={handleChange}
-          required
-          half
-          options={countryOptions}
-        />
-        <SelectField
-          label="State / Province"
-          name="state"
-          icon={MapPin}
-          placeholder="Select State"
-          value={formData.state}
-          onChange={handleChange}
-          required
-          half
-          options={stateOptions}
-        />
-        {cities.length > 0 ? (
-          <SelectField
-            label="District / City"
-            name="district"
-            icon={MapPin}
-            placeholder="Select District/City"
-            value={formData.district}
-            onChange={handleChange}
-            required
-            half
-            options={cityOptions}
-          />
-        ) : (
-          <InputField label="District / City" name="district" icon={MapPin} placeholder="Enter District/City" value={formData.district} onChange={handleChange} required half />
-        )}
-        <InputField label="Land Size (Acres)" name="land_size_acres" icon={Ruler} type="number" placeholder="e.g. 50.5" value={formData.land_size_acres} onChange={handleChange} required half />
-      </motion.div>
-    );
-  };
-
-  const renderCropStep = () => (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-    >
-      <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-sm">
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-          Current Crops
-        </label>
-
-        <div className="flex flex-wrap gap-2 mb-4 min-h-[40px]">
-          {formData.current_crops.map((crop, idx) => (
-            <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100 shadow-sm animate-scale-in">
-              {crop}
-              <button onClick={() => removeCrop(crop)} className="text-emerald-400 hover:text-red-500 transition-colors" type="button">
-                <X size={14} />
-              </button>
-            </span>
-          ))}
-          {formData.current_crops.length === 0 && (
-            <span className="text-sm text-slate-400 italic py-1.5">No crops added yet...</span>
-          )}
-        </div>
-
-        <div className="relative group">
-          <input
-            id="crop-input"
-            type="text"
-            className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-0 focus:border-emerald-500 block pl-10 p-3 transition-all outline-none font-medium"
-            placeholder="Type crop name & press Enter"
-            value={cropInput}
-            onChange={(e) => setCropInput(e.target.value)}
-            onKeyDown={handleAddCrop}
-          />
-          <div className="absolute left-3 top-3 text-slate-400 group-focus-within:text-emerald-500">
-            <Search size={18} />
-          </div>
-          <div className="absolute right-3 top-2 px-2 py-1 bg-white rounded text-[10px] font-bold text-slate-400 uppercase tracking-wide border border-slate-200 shadow-sm">
-            Enter
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100 flex gap-3">
-        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg shrink-0 h-fit">
-          <Sprout size={18} />
-        </div>
-        <div>
-          <h4 className="text-xs font-bold text-slate-700 mb-1">AI Optimization</h4>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            AgriFusion uses your location and current crop data to suggest the most profitable intercropping patterns. Ensure this data is accurate.
-          </p>
-        </div>
+        <InputField label="Create Password" name="password" icon={Lock} type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required half isHighlighted={highlightedFields.has('password')} />
+        <InputField label="Confirm Password" name="confirmPassword" icon={Lock} type="password" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} required half isHighlighted={highlightedFields.has('confirmPassword')} />
       </div>
     </motion.div>
   );
@@ -871,7 +654,7 @@ export default function FarmerRegistration() {
       <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-            <User size={14} className="text-emerald-500" /> Account
+            <User size={14} className="text-emerald-500" /> Account Information
           </h4>
           <button onClick={() => goToStep(1)} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded transition-colors" type="button">
             Edit
@@ -880,49 +663,20 @@ export default function FarmerRegistration() {
         <div className="grid grid-cols-2 gap-4">
           <ReviewField label="Full Name" value={formData.full_name} />
           <ReviewField label="Email" value={formData.email} />
-          <ReviewField label="Phone" value={formData.phone} />
+          <ReviewField label="Phone" value={`${formData.phoneCountryCode}${formData.phone}`} />
         </div>
       </div>
 
-      {/* Farm Details */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-            <Tractor size={14} className="text-emerald-500" /> Farm Profile
-          </h4>
-          <button onClick={() => goToStep(2)} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded transition-colors" type="button">
-            Edit
-          </button>
+      {/* Informational Note */}
+      <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100 flex gap-3">
+        <div className="p-2 bg-blue-100 text-blue-600 rounded-lg shrink-0 h-fit">
+          <User size={18} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <ReviewField label="Farm Name" value={formData.farm_name} />
-          <ReviewField label="Land Size" value={formData.land_size_acres ? `${formData.land_size_acres} Acres` : ''} />
-          <div className="col-span-2">
-            <ReviewField label="Location" value={formData.district && formData.state && formData.country ? `${formData.district}, ${formData.state}, ${formData.country}` : ''} />
-          </div>
-        </div>
-      </div>
-
-      {/* Production */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-            <Sprout size={14} className="text-emerald-500" /> Crops
-          </h4>
-          <button onClick={() => goToStep(3)} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded transition-colors" type="button">
-            Edit
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {formData.current_crops.length > 0 ? (
-            formData.current_crops.map((c, i) => (
-              <span key={i} className="inline-block px-2.5 py-1 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-bold rounded-md">
-                {c}
-              </span>
-            ))
-          ) : (
-            <span className="text-sm text-slate-400 italic">None listed</span>
-          )}
+        <div>
+          <h4 className="text-xs font-bold text-slate-700 mb-1">Next Steps</h4>
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            After registration, you can complete your farm profile and crop information from your dashboard.
+          </p>
         </div>
       </div>
     </motion.div>

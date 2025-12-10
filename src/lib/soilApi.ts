@@ -4,7 +4,7 @@
 
 import { SoilAnalysisResponse, SoilAnalysisError } from '@/types/soil';
 
-const API_ENDPOINT = 'https://tayyabkf52-agrifusionmodel.hf.space/predict';
+const API_ENDPOINT = 'https://fatima423-Swinnet.hf.space/predict';
 const REQUEST_TIMEOUT = 30000; // 30 seconds
 
 export class SoilAnalysisApiError extends Error {

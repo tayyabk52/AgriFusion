@@ -11,6 +11,7 @@ import { TagInput } from "@/components/dashboard/consultant/TagInput";
 import { Country, State, City, IState, ICity } from 'country-state-city';
 import * as flags from 'country-flag-icons/react/3x2';
 import { toast } from 'sonner';
+import { validateFullName, validateQualification } from '@/lib/validationUtils';
 
 const SPECIALIZATION_SUGGESTIONS = [
   'Crop Management',
@@ -275,14 +276,29 @@ export default function SettingsPage() {
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, avatar: 'File size must be less than 2MB' }));
-        return;
-      }
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setErrors(prev => ({ ...prev, avatar: 'Please upload a JPG, PNG, or GIF image' }));
+      return;
     }
+
+    // Validate file size (2MB max)
+    if (file.size > 2 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, avatar: 'File size must be less than 2MB' }));
+      return;
+    }
+
+    // Clear any previous errors and set the file
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.avatar;
+      return newErrors;
+    });
   };
 
   const uploadAvatar = async (userId: string): Promise<string | null> => {
@@ -313,10 +329,38 @@ export default function SettingsPage() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.full_name.trim()) newErrors.full_name = 'Full name is required';
-    if (!formData.qualification.trim()) newErrors.qualification = 'Qualification is required';
-    if (formData.specialization_areas.length === 0) newErrors.specialization_areas = 'At least one specialization is required';
-    if (formData.experience_years < 0 || formData.experience_years > 100) newErrors.experience_years = 'Invalid experience years';
+    // Full Name Validation
+    const nameValidation = validateFullName(formData.full_name);
+    if (!nameValidation.valid) {
+      newErrors.full_name = nameValidation.error || 'Invalid full name';
+    }
+
+    // Qualification Validation
+    const qualificationValidation = validateQualification(formData.qualification);
+    if (!qualificationValidation.valid) {
+      newErrors.qualification = qualificationValidation.error || 'Invalid qualification';
+    }
+
+    // Specialization Areas
+    if (formData.specialization_areas.length === 0) {
+      newErrors.specialization_areas = 'At least one specialization is required';
+    }
+
+    // Experience Years
+    if (formData.experience_years < 0 || formData.experience_years > 100) {
+      newErrors.experience_years = 'Invalid experience years';
+    }
+
+    // Phone Number (optional, but if provided must be valid)
+    if (formData.phoneNumber && formData.phoneNumber.length > 0) {
+      if (formData.phoneNumber.length < 7) {
+        newErrors.phone = 'Phone number must be at least 7 digits';
+      } else if (formData.phoneNumber.length > 15) {
+        newErrors.phone = 'Phone number must be less than 15 digits';
+      }
+    }
+
+    // Location Fields
     if (!formData.country) newErrors.country = 'Country is required';
     if (!formData.state) newErrors.state = 'State is required';
     if (!formData.district) newErrors.district = 'District is required';

@@ -14,6 +14,7 @@ import Image from 'next/image';
 import { Country, ICountry } from 'country-state-city';
 import * as flags from 'country-flag-icons/react/3x2';
 import { toast } from 'sonner';
+import { validateFullName } from '@/lib/validationUtils';
 
 
 interface Profile {
@@ -88,6 +89,7 @@ export default function FarmerSettings() {
     // Phone validation
     const [countries] = useState<ICountry[]>(() => Country.getAllCountries());
     const [phoneValidationError, setPhoneValidationError] = useState<string>('');
+    const [nameValidationError, setNameValidationError] = useState<string>('');
 
     // Form States
     const [formData, setFormData] = useState({
@@ -169,9 +171,12 @@ export default function FarmerSettings() {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
 
-        // Clear phone validation error when user types
+        // Clear validation errors when user types
         if (name === 'phone') {
             setPhoneValidationError('');
+        }
+        if (name === 'full_name') {
+            setNameValidationError('');
         }
     };
 
@@ -215,22 +220,40 @@ export default function FarmerSettings() {
 
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 2 * 1024 * 1024) { // 2MB limit
-                setMessage({ type: 'error', text: 'Image size must be less than 2MB' });
-                return;
-            }
-            setAvatarFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => setAvatarPreview(reader.result as string);
-            reader.readAsDataURL(file);
+        if (!file) return;
+
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!validTypes.includes(file.type)) {
+            setMessage({ type: 'error', text: 'Please upload a JPG, PNG, or GIF image' });
+            return;
         }
+
+        // Validate file size (2MB limit)
+        if (file.size > 2 * 1024 * 1024) {
+            setMessage({ type: 'error', text: 'Image size must be less than 2MB' });
+            return;
+        }
+
+        // Set file and preview
+        setAvatarFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setAvatarPreview(reader.result as string);
+        reader.readAsDataURL(file);
     };
 
 
 
     const handleSaveProfile = async () => {
         if (!profile) return;
+
+        // Validate full name
+        const nameValidation = validateFullName(formData.full_name);
+        if (!nameValidation.valid) {
+            setNameValidationError(nameValidation.error || 'Invalid full name');
+            setMessage({ type: 'error', text: nameValidation.error || 'Invalid full name' });
+            return;
+        }
 
         // Validate phone number before saving
         if (!validatePhoneNumber()) {
@@ -387,16 +410,23 @@ export default function FarmerSettings() {
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Full Name</label>
                                         <div className="relative">
-                                            <User className="absolute left-3 top-3 text-slate-400" size={18} />
+                                            <User className={`absolute left-3 top-3 ${nameValidationError ? 'text-red-500' : 'text-slate-400'}`} size={18} />
                                             <input
                                                 type="text"
                                                 name="full_name"
                                                 value={formData.full_name}
                                                 onChange={handleInputChange}
-                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                                                className={`w-full pl-10 pr-4 py-2.5 rounded-xl focus:ring-2 outline-none transition-all ${
+                                                    nameValidationError
+                                                        ? 'bg-red-50/50 border border-red-300 focus:ring-red-500/20 focus:border-red-500'
+                                                        : 'bg-slate-50 border border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500'
+                                                }`}
                                                 placeholder="John Doe"
                                             />
                                         </div>
+                                        {nameValidationError && (
+                                            <p className="text-xs text-red-600 mt-1 ml-1 font-medium">{nameValidationError}</p>
+                                        )}
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>

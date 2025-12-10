@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/Button';
 import Loader from '@/components/ui/Loader';
 import { supabase } from '@/lib/supabaseClient';
 import { uploadConsultantDocuments, validateFile } from '@/lib/storageUtils';
-import { validateEmail, validatePhone, validatePassword } from '@/lib/validationUtils';
+import { validateEmail, validatePhone, validatePassword, validateSpecialization, validateFullName, validateQualification } from '@/lib/validationUtils';
 import * as flags from 'country-flag-icons/react/3x2';
 
 /**
@@ -439,6 +439,7 @@ export default function ConsultantRegistration() {
     phone: '',
     phoneCountryCode: '+92', // Default to Pakistan
     password: '',
+    confirmPassword: '',
     qualification: '',
     experience_years: '',
     country: '',
@@ -465,6 +466,7 @@ export default function ConsultantRegistration() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const [specializationInput, setSpecializationInput] = useState('');
+  const [specializationError, setSpecializationError] = useState<string>('');
   const [countries] = useState<ICountry[]>(() => Country.getAllCountries());
   const [states, setStates] = useState<IState[]>([]);
   const [cities, setCities] = useState<ICity[]>([]);
@@ -502,13 +504,37 @@ export default function ConsultantRegistration() {
   };
 
   const handleAddSpecialization = (specialization: string) => {
-    if (specialization.trim() !== '' && !formData.specialization_areas.includes(specialization.trim())) {
-      setFormData({
-        ...formData,
-        specialization_areas: [...formData.specialization_areas, specialization.trim()]
-      });
+    const trimmed = specialization.trim();
+
+    // Clear previous error
+    setSpecializationError('');
+
+    // Check if empty
+    if (!trimmed) {
+      setSpecializationInput('');
+      return;
     }
+
+    // Validate specialization format
+    const validation = validateSpecialization(trimmed);
+    if (!validation.valid) {
+      setSpecializationError(validation.error || 'Invalid specialization');
+      return;
+    }
+
+    // Check for duplicates
+    if (formData.specialization_areas.includes(trimmed)) {
+      setSpecializationError('This specialization has already been added');
+      return;
+    }
+
+    // Add to list
+    setFormData({
+      ...formData,
+      specialization_areas: [...formData.specialization_areas, trimmed]
+    });
     setSpecializationInput('');
+    setSpecializationError('');
   };
 
   const removeSpecialization = (spec: string) => {
@@ -616,9 +642,10 @@ export default function ConsultantRegistration() {
     const fieldsToHighlight = new Set<string>();
 
     if (currentStep === 1) {
-      // Full Name
-      if (!formData.full_name.trim()) {
-        errors.push('Full name is required');
+      // Full Name Validation
+      const nameValidation = validateFullName(formData.full_name);
+      if (!nameValidation.valid) {
+        errors.push(nameValidation.error || 'Invalid full name');
         fieldsToHighlight.add('full_name');
       }
 
@@ -646,19 +673,52 @@ export default function ConsultantRegistration() {
         errors.push(...passwordValidation.errors);
         fieldsToHighlight.add('password');
       }
+
+      // Confirm Password Validation
+      if (!formData.confirmPassword.trim()) {
+        errors.push('Please confirm your password');
+        fieldsToHighlight.add('confirmPassword');
+      } else if (formData.password !== formData.confirmPassword) {
+        errors.push('Passwords do not match');
+        fieldsToHighlight.add('password');
+        fieldsToHighlight.add('confirmPassword');
+      }
     } else if (currentStep === 2) {
-      // Validate Professional step
-      if (!formData.qualification.trim()) {
-        errors.push('Qualification is required');
+      // Qualification Validation
+      const qualificationValidation = validateQualification(formData.qualification);
+      if (!qualificationValidation.valid) {
+        errors.push(qualificationValidation.error || 'Invalid qualification');
         fieldsToHighlight.add('qualification');
       }
+
+      // Experience Years Validation
       if (!formData.experience_years.trim()) {
         errors.push('Years of experience is required');
         fieldsToHighlight.add('experience_years');
+      } else {
+        const experienceYears = parseInt(formData.experience_years);
+        if (isNaN(experienceYears) || experienceYears < 0) {
+          errors.push('Years of experience must be 0 or greater');
+          fieldsToHighlight.add('experience_years');
+        }
       }
+
+      // Personal Location Validation
       if (!formData.country.trim()) {
         errors.push('Country is required');
         fieldsToHighlight.add('country');
+      } else {
+        // Only validate state if country is selected
+        if (!formData.state.trim()) {
+          errors.push('State/Province is required');
+          fieldsToHighlight.add('state');
+        } else {
+          // Only validate district if state is selected
+          if (!formData.district.trim()) {
+            errors.push('District/City is required');
+            fieldsToHighlight.add('district');
+          }
+        }
       }
 
       // Document validation - Educational and Government are required
@@ -689,6 +749,7 @@ export default function ConsultantRegistration() {
     if (!validateCurrentStep()) {
       return;
     }
+    setValidationErrors([]);
     setCurrentStep(prev => Math.min(prev + 1, 5));
   };
 
@@ -907,7 +968,8 @@ export default function ConsultantRegistration() {
           isHighlighted={highlightedFields.has('phone')}
         />
         <InputField label="Email Address" name="email" icon={Mail} type="email" placeholder="john@consultant.com" value={formData.email} onChange={handleChange} required half isHighlighted={highlightedFields.has('email')} />
-        <InputField label="Create Password" name="password" icon={Lock} type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required isHighlighted={highlightedFields.has('password')} />
+        <InputField label="Create Password" name="password" icon={Lock} type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required half isHighlighted={highlightedFields.has('password')} />
+        <InputField label="Confirm Password" name="confirmPassword" icon={Lock} type="password" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} required half isHighlighted={highlightedFields.has('confirmPassword')} />
       </div>
     </motion.div>
   );
@@ -979,6 +1041,7 @@ export default function ConsultantRegistration() {
               half
               options={stateOptions}
               disabled={!formData.country}
+              isHighlighted={highlightedFields.has('state')}
             />
             <SelectField
               label="District/City"
@@ -991,6 +1054,7 @@ export default function ConsultantRegistration() {
               half
               options={cityOptions}
               disabled={!formData.state}
+              isHighlighted={highlightedFields.has('district')}
             />
           </div>
         </div>
@@ -1158,7 +1222,7 @@ export default function ConsultantRegistration() {
                     )}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {documents.government ? documents.government.name : 'Passport, National ID, or Aadhaar Card'}
+                    {documents.government ? documents.government.name : 'Passport, National ID'}
                   </p>
                 </div>
                 {documents.government ? (
@@ -1244,10 +1308,17 @@ export default function ConsultantRegistration() {
           <input
             id="specialization-input"
             type="text"
-            className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-0 focus:border-blue-500 block pl-10 p-3 transition-all outline-none font-medium"
+            className={`w-full bg-slate-50 border text-slate-900 text-sm rounded-xl focus:ring-0 block pl-10 p-3 transition-all outline-none font-medium ${
+              specializationError
+                ? 'border-red-400 bg-red-50/30 focus:border-red-500'
+                : 'border-slate-200 focus:border-blue-500'
+            }`}
             placeholder="Or type custom specialization & press Enter"
             value={specializationInput}
-            onChange={(e) => setSpecializationInput(e.target.value)}
+            onChange={(e) => {
+              setSpecializationInput(e.target.value);
+              setSpecializationError(''); // Clear error when typing
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -1255,9 +1326,16 @@ export default function ConsultantRegistration() {
               }
             }}
           />
-          <div className="absolute left-3 top-3 text-slate-400 group-focus-within:text-blue-500">
+          <div className={`absolute left-3 top-3 transition-colors ${
+            specializationError ? 'text-red-500' : 'text-slate-400 group-focus-within:text-blue-500'
+          }`}>
             <Search size={18} />
           </div>
+          {specializationError && (
+            <p className="text-xs text-red-600 mt-1.5 ml-1 font-medium">
+              {specializationError}
+            </p>
+          )}
         </div>
       </div>
 

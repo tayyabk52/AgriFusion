@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ArrowLeft, ArrowRight, Check, ChevronDown, Edit2, Phone, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-import { validateEmail, validatePhone, validatePassword } from '@/lib/validationUtils';
+import { validateEmail, validatePhone, validatePassword, validateFullName } from '@/lib/validationUtils';
 import { CropTagInput } from './CropTagInput';
 import { Country, State, City, ICountry, IState, ICity } from 'country-state-city';
 import * as flags from 'country-flag-icons/react/3x2';
@@ -178,8 +178,9 @@ export const CreateFarmerForm: React.FC<CreateFarmerFormProps> = ({
     const newErrors: Record<string, string> = {};
 
     // Full Name Validation
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
+    const nameValidation = validateFullName(formData.fullName);
+    if (!nameValidation.valid) {
+      newErrors.fullName = nameValidation.error || 'Invalid full name';
     } else if (formData.fullName.trim().length > 255) {
       newErrors.fullName = 'Full name cannot exceed 255 characters';
     }
@@ -224,8 +225,14 @@ export const CreateFarmerForm: React.FC<CreateFarmerFormProps> = ({
     // Farm Name Validation
     if (!formData.farmName.trim()) {
       newErrors.farmName = 'Farm name is required';
+    } else if (formData.farmName.trim().length < 2) {
+      newErrors.farmName = 'Farm name must be at least 2 characters';
     } else if (formData.farmName.trim().length > 255) {
       newErrors.farmName = 'Farm name cannot exceed 255 characters';
+    } else if (!/^[A-Za-zÀ-ÿ0-9\s\-'\.&()]+$/.test(formData.farmName.trim())) {
+      newErrors.farmName = 'Farm name contains invalid characters';
+    } else if (/\s{2,}/.test(formData.farmName.trim())) {
+      newErrors.farmName = 'Avoid multiple consecutive spaces';
     }
 
     // Country Validation
@@ -266,8 +273,14 @@ export const CreateFarmerForm: React.FC<CreateFarmerFormProps> = ({
       newErrors.crops = 'Please add at least one crop';
     } else if (formData.crops.some(c => !c.trim())) {
       newErrors.crops = 'Crop names cannot be empty';
+    } else if (formData.crops.some(c => c.trim().length < 2)) {
+      newErrors.crops = 'Crop names must be at least 2 characters';
     } else if (formData.crops.some(c => c.trim().length > 100)) {
       newErrors.crops = 'Crop names cannot exceed 100 characters';
+    } else if (formData.crops.some(c => !/^[A-Za-zÀ-ÿ\s\-'&()]+$/.test(c.trim()))) {
+      newErrors.crops = 'Crop names can only contain letters, spaces, hyphens, apostrophes, and parentheses';
+    } else if (formData.crops.some(c => /\s{2,}/.test(c.trim()))) {
+      newErrors.crops = 'Crop names cannot have multiple consecutive spaces';
     }
 
     setErrors(newErrors);
@@ -330,18 +343,46 @@ export const CreateFarmerForm: React.FC<CreateFarmerFormProps> = ({
         throw new Error('Failed to create user account. Please try again.');
       }
 
+      // Check if user already exists (Supabase returns user with empty identities for existing emails)
+      // This is a security feature to prevent email enumeration
+      if (authData.user.identities && authData.user.identities.length === 0) {
+        throw new Error('This email address is already registered. Please use a different email.');
+      }
+
       // Wait for profile to be created by trigger
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Retrieve created profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('auth_user_id', authData.user.id)
-        .single();
+      // Retrieve created profile with retry logic
+      let profile = null;
+      let retryCount = 0;
+      const maxRetries = 3;
 
-      if (profileError || !profile) {
-        throw new Error('Failed to retrieve farmer profile. The account was created but setup is incomplete.');
+      while (!profile && retryCount < maxRetries) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('auth_user_id', authData.user.id)
+          .single();
+
+        if (profileData) {
+          profile = profileData;
+          break;
+        }
+
+        if (profileError && profileError.code === 'PGRST116') {
+          // Row not found - wait and retry
+          retryCount++;
+          if (retryCount < maxRetries) {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+          }
+        } else if (profileError) {
+          // Other error - check if email already exists
+          throw new Error('This email address may already be registered. Please try a different email.');
+        }
+      }
+
+      if (!profile) {
+        throw new Error('Account setup is taking longer than expected. Please try again or contact support.');
       }
 
       // Update farmer details
@@ -440,7 +481,25 @@ export const CreateFarmerForm: React.FC<CreateFarmerFormProps> = ({
         toast.success('Farmer account created successfully!');
       }
 
-      // Success!
+      // Success! Reset form for adding another farmer
+      setFormData({
+        fullName: '',
+        email: '',
+        phone: '',
+        phoneCountryCode: '+92',
+        password: '',
+        farmName: '',
+        country: '',
+        state: '',
+        district: '',
+        landSize: '',
+        crops: [],
+      });
+      setStep(1);
+      setStates([]);
+      setCities([]);
+      setErrors({});
+      setSubmitting(false);
       if (onSuccess) onSuccess();
     } catch (err: any) {
       console.error('Create farmer error:', err);

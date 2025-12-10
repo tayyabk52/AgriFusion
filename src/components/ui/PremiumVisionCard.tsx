@@ -70,14 +70,14 @@ export const PremiumVisionCard: React.FC<PremiumVisionCardProps> = ({
                             <div className="absolute left-[-60%] bottom-[-20%] w-96 h-40 rounded-full bg-blue-950 z-20" />
 
                             {/* Trees silhouette on left hill */}
-                            <div className="absolute bottom-[22%] left-[5%] w-12 h-16 z-30">
-                                <svg viewBox="0 0 64 64" fill="#1e3a8a" className="drop-shadow-lg">
+                            <div className="absolute bottom-[22%] left-[5%] w-12 h-16 z-[5]">
+                                <svg viewBox="0 0 64 64" fill="#1e3a8a" className="drop-shadow-lg opacity-80">
                                     <path d="M32,0C18.148,0,12,23.188,12,32c0,9.656,6.883,17.734,16,19.594V60c0,2.211,1.789,4,4,4s4-1.789,4-4v-8.406C45.117,49.734,52,41.656,52,32C52,22.891,46.051,0,32,0z" />
                                 </svg>
                             </div>
 
-                            <div className="absolute bottom-[16%] left-[22%] w-12 h-16 z-30">
-                                <svg viewBox="0 0 64 64" fill="#1e40af" className="drop-shadow-lg">
+                            <div className="absolute bottom-[16%] left-[22%] w-12 h-16 z-[5]">
+                                <svg viewBox="0 0 64 64" fill="#1e40af" className="drop-shadow-lg opacity-80">
                                     <path d="M32,0C18.148,0,12,23.188,12,32c0,9.656,6.883,17.734,16,19.594V60c0,2.211,1.789,4,4,4s4-1.789,4-4v-8.406C45.117,49.734,52,41.656,52,32C52,22.891,46.051,0,32,0z" />
                                 </svg>
                             </div>
@@ -86,8 +86,8 @@ export const PremiumVisionCard: React.FC<PremiumVisionCardProps> = ({
                             <div className="absolute right-[-60%] bottom-[-30%] w-96 h-40 rounded-full bg-indigo-950 z-20" />
 
                             {/* Trees silhouette on right hill */}
-                            <div className="absolute bottom-[12%] right-[2%] w-16 h-20 z-30">
-                                <svg viewBox="0 0 64 64" fill="#1e3a8a" className="drop-shadow-lg">
+                            <div className="absolute bottom-[12%] right-[2%] w-16 h-20 z-[5]">
+                                <svg viewBox="0 0 64 64" fill="#1e3a8a" className="drop-shadow-lg opacity-80">
                                     <path d="M32,0C18.148,0,12,23.188,12,32c0,9.656,6.883,17.734,16,19.594V60c0,2.211,1.789,4,4,4s4-1.789,4-4v-8.406C45.117,49.734,52,41.656,52,32C52,22.891,46.051,0,32,0z" />
                                 </svg>
                             </div>

@@ -3,6 +3,7 @@
 import React, { useState, KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus } from 'lucide-react';
+import { validateSpecialization } from '@/lib/validationUtils';
 
 interface TagInputProps {
   tags: string[];
@@ -23,6 +24,7 @@ export const TagInput: React.FC<TagInputProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const filteredSuggestions = suggestions.filter(
     (item) =>
@@ -33,17 +35,32 @@ export const TagInput: React.FC<TagInputProps> = ({
   const addTag = (tag: string) => {
     const trimmedTag = tag.trim();
 
-    // Check if tag is valid and not duplicate
-    if (!trimmedTag || tags.includes(trimmedTag)) {
+    // Clear previous validation error
+    setValidationError(null);
+
+    // Check if empty
+    if (!trimmedTag) {
       setInputValue('');
       setShowSuggestions(false);
       return;
     }
 
+    // Validate specialization format
+    const validation = validateSpecialization(trimmedTag);
+    if (!validation.valid) {
+      setValidationError(validation.error || 'Invalid specialization');
+      return;
+    }
+
+    // Check for duplicates
+    if (tags.includes(trimmedTag)) {
+      setValidationError('This specialization has already been added');
+      return;
+    }
+
     // Check max items limit
     if (maxItems && tags.length >= maxItems) {
-      setInputValue('');
-      setShowSuggestions(false);
+      setValidationError(`Maximum of ${maxItems} specializations allowed`);
       return;
     }
 
@@ -75,6 +92,7 @@ export const TagInput: React.FC<TagInputProps> = ({
           value={inputValue}
           onChange={(e) => {
             setInputValue(e.target.value);
+            setValidationError(null); // Clear validation error when typing
             setShowSuggestions(e.target.value.length > 0 && suggestions.length > 0);
           }}
           onKeyDown={handleKeyDown}
@@ -82,7 +100,7 @@ export const TagInput: React.FC<TagInputProps> = ({
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder={placeholder}
           className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
-            error
+            error || validationError
               ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/10'
               : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500'
           }`}
@@ -114,9 +132,9 @@ export const TagInput: React.FC<TagInputProps> = ({
       </div>
 
       {/* Error Message */}
-      {error && (
+      {(error || validationError) && (
         <p className="text-xs text-red-600 mt-1 ml-1 font-medium">
-          {error}
+          {validationError || error}
         </p>
       )}
 

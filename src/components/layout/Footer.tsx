@@ -10,10 +10,9 @@ export const Footer = () => {
 
     const footerLinks = {
         company: [
-            { name: 'About Us', href: '#' },
-            { name: 'Contact', href: '#' },
-            { name: 'Privacy Policy', href: '#' },
-            { name: 'Terms of Service', href: '#' },
+            { name: 'About Us', href: '/about' },
+            { name: 'Contact Us', href: '/contact' },
+            { name: 'Sign Up', href: '/signup' },
         ],
     };
 
@@ -51,7 +50,7 @@ export const Footer = () => {
                             </div>
                             <div className="flex items-center gap-2 text-slate-400 hover:text-emerald-400 transition-colors">
                                 <Phone className="w-4 h-4" />
-                                <span>+1 (555) 123-4567</span>
+                                <span>+92 (308) 4450-419</span>
                             </div>
                         </div>
                     </div>
@@ -78,11 +77,8 @@ export const Footer = () => {
 
                 {/* Bottom Bar */}
                 <div className="pt-8 border-t border-slate-800/50">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p className="text-sm text-slate-500">
-                            © {currentYear} AgriFusion. All rights reserved.
-                        </p>
-                        <div className="flex items-center gap-6">
+                    <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:relative">
+                        <div className="md:absolute md:left-0 flex items-center gap-6">
                             <Link
                                 href="#"
                                 className="text-slate-500 hover:text-emerald-400 transition-colors text-sm"
@@ -102,6 +98,9 @@ export const Footer = () => {
                                 Cookies
                             </Link>
                         </div>
+                        <p className="text-sm text-slate-500">
+                            © {currentYear} AgriFusion. All rights reserved.
+                        </p>
                     </div>
                 </div>
             </div>
