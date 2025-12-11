@@ -222,20 +222,7 @@ export default function FarmerSettings() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate file type
-        const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        if (!validTypes.includes(file.type)) {
-            setMessage({ type: 'error', text: 'Please upload a JPG, PNG, or GIF image' });
-            return;
-        }
-
-        // Validate file size (2MB limit)
-        if (file.size > 2 * 1024 * 1024) {
-            setMessage({ type: 'error', text: 'Image size must be less than 2MB' });
-            return;
-        }
-
-        // Set file and preview
+        // Set file and preview without validation
         setAvatarFile(file);
         const reader = new FileReader();
         reader.onloadend = () => setAvatarPreview(reader.result as string);
@@ -270,19 +257,27 @@ export default function FarmerSettings() {
             // Upload Avatar if changed
             if (avatarFile) {
                 const fileExt = avatarFile.name.split('.').pop();
-                const fileName = `${profile.id}-${Math.random()}.${fileExt}`;
-                const filePath = `avatars/${fileName}`;
+                const fileName = `${profile.auth_user_id}/${Date.now()}.${fileExt}`; // Use folder structure
+
+                console.log('Uploading avatar:', { fileName, fileType: avatarFile.type, fileSize: avatarFile.size });
 
                 const { error: uploadError } = await supabase.storage
-                    .from('avatars') // Make sure this bucket exists
-                    .upload(filePath, avatarFile);
+                    .from('avatars')
+                    .upload(fileName, avatarFile, {
+                        cacheControl: '3600',
+                        upsert: true
+                    });
 
-                if (uploadError) throw uploadError;
+                if (uploadError) {
+                    console.error('Supabase upload error:', uploadError);
+                    throw uploadError;
+                }
 
                 const { data: { publicUrl } } = supabase.storage
                     .from('avatars')
-                    .getPublicUrl(filePath);
+                    .getPublicUrl(fileName);
 
+                console.log('Avatar uploaded successfully:', publicUrl);
                 avatarUrl = publicUrl;
             }
 
@@ -401,7 +396,7 @@ export default function FarmerSettings() {
                                     <div>
                                         <h3 className="text-sm font-bold text-slate-900">Profile Photo</h3>
                                         <p className="text-xs text-slate-500 mt-1 max-w-xs">
-                                            Upload a clear photo to help your consultant recognize you. Max size 2MB.
+                                            Upload a clear photo to help your consultant recognize you.
                                         </p>
                                     </div>
                                 </div>

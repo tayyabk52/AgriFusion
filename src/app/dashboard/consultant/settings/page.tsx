@@ -278,20 +278,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      setErrors(prev => ({ ...prev, avatar: 'Please upload a JPG, PNG, or GIF image' }));
-      return;
-    }
-
-    // Validate file size (2MB max)
-    if (file.size > 2 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, avatar: 'File size must be less than 2MB' }));
-      return;
-    }
-
-    // Clear any previous errors and set the file
+    // Set the file directly without validation
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
     setErrors(prev => {
@@ -307,19 +294,30 @@ export default function SettingsPage() {
     setUploadingAvatar(true);
     try {
       const fileExt = avatarFile.name.split('.').pop();
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `${userId}/${Date.now()}.${fileExt}`; // Use folder structure like signup
+
+      console.log('Uploading avatar:', { fileName, fileType: avatarFile.type, fileSize: avatarFile.size });
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, avatarFile, { upsert: true });
+        .upload(fileName, avatarFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Supabase upload error:', uploadError);
+        throw uploadError;
+      }
 
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      console.log('Avatar uploaded successfully:', publicUrl);
       return publicUrl;
     } catch (error: unknown) {
-      setErrors(prev => ({ ...prev, avatar: 'Failed to upload avatar' }));
+      console.error('Avatar upload failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload avatar';
+      setErrors(prev => ({ ...prev, avatar: `Upload failed: ${errorMessage}` }));
+      toast.error(`Avatar upload failed: ${errorMessage}`);
       return null;
     } finally {
       setUploadingAvatar(false);
@@ -550,7 +548,7 @@ export default function SettingsPage() {
                       className="hidden"
                     />
                   </div>
-                  <p className="text-xs text-slate-500">JPG, PNG or GIF • Max 2MB</p>
+                  <p className="text-xs text-slate-500">Upload your profile photo</p>
                   {errors.avatar && <p className="text-xs text-red-500 mt-1">{errors.avatar}</p>}
                 </div>
               </SectionCard>
